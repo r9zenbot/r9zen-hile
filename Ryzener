@@ -1,0 +1,1141 @@
+-- =============================================
+-- R9ZEN ULTIMATE V21 | AIMBOT FIX + WORKING HITBOX
+-- =============================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local TextChatService = game:GetService("TextChatService")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- TEMA
+local BG_BLACK = Color3.fromRGB(12, 12, 12)
+local BG_DARK = Color3.fromRGB(20, 20, 20)
+local BG_GRAY = Color3.fromRGB(50, 50, 50)
+local WHITE = Color3.fromRGB(240, 240, 240)
+local LIGHT = Color3.fromRGB(180, 180, 180)
+
+-- ALL SETTINGS
+local AimbotEnabled = false
+local AimFOV = 200
+local AimRange = 500
+local AimPart = "HumanoidRootPart"
+local HoldingE = false
+local HitboxEnabled = false
+local HitboxSize = 10
+local ESPEnabled = false
+local ESPBox = true
+local ESPLines = true
+local ESPNames = true
+local ESPHealth = true
+local ESPTeamCheck = true
+local SpinBotEnabled = false
+local SpinSpeed = 15
+local SpinAngle = 0
+local GameFOV = 70
+local FlyEnabled = false
+local FlySpeed = 60
+local ThirdPersonEnabled = false
+local CamDistance = 10
+local CamHeight = 3
+local MenuVisible = true
+local StreamerMode = false
+local GalaxyMode = false
+local SlideEnabled = false
+local SlideSpeed = 100
+local IsSliding = false
+local EnemyResizeEnabled = false
+local EnemyResizeAmount = 100
+local FPSBoosterEnabled = false
+local NoclipEnabled = false
+local AutoDodgeEnabled = false
+local ESPTable = {}
+local FlyBodyVelocity = nil
+local FlyBodyGyro = nil
+local SkyboxObj = nil
+local SlideBodyVelocity = nil
+local EnemyOrigSizes = {}
+local FPSOrigData = {}
+local NoclipConnection = nil
+local FOVCircle = nil
+local CrosshairGui = nil
+local HitboxOrigSizes = {}
+local HitboxOrigTrans = {}
+local HitboxOrigCanColl = {}
+local HitboxOrigMat = {}
+local HitboxOrigColor = {}
+local HitboxOrigMassless = {}
+
+-- =============== ANTI-CHEAT BYPASS ===============
+task.spawn(function()
+    task.wait(0.5)
+    pcall(function()
+        local mt = getrawmetatable(game)
+        setreadonly(mt, false)
+        local oldNamecall = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" or method == "InvokeServer" then
+                local name = tostring(self.Name):lower()
+                if name == "report" or name == "reportplayer" or 
+                   name == "banplayer" or name == "kickplayer" or
+                   name:find("anticheat") or name:find("antiexploit") then
+                    return nil
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+        setreadonly(mt, true)
+    end)
+    pcall(function() hookfunction(LocalPlayer.Kick, function(...) return end) end)
+    pcall(function() LocalPlayer.Kick = function() end end)
+end)
+
+-- =============== AIMBOT ===============
+local function GetClosestEnemy()
+    local closest, shortest = nil, AimFOV
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if LocalPlayer.Team and plr.Team and LocalPlayer.Team == plr.Team then continue end
+        
+        local char = plr.Character
+        if not char then continue end
+        local part = char:FindFirstChild(AimPart)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not part or not hum or hum.Health <= 0 then continue end
+        
+        local success, state = pcall(function() return hum:GetState() end)
+        if success and state == Enum.HumanoidStateType.Dead then continue end
+        
+        local dist3D = (myChar.HumanoidRootPart.Position - part.Position).Magnitude
+        if dist3D > AimRange then continue end
+        
+        local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+        if onScreen then
+            local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+            if dist < shortest then
+                shortest = dist
+                closest = plr
+            end
+        end
+    end
+    return closest
+end
+
+-- =============== HITBOX EXPANDER ===============
+local function ApplyHitbox()
+    if not HitboxEnabled then return end
+    
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if LocalPlayer.Team and plr.Team and LocalPlayer.Team == plr.Team then continue end
+        
+        if plr.Character then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health <= 0 then continue end
+            
+            local targetParts = {"Head", "HumanoidRootPart", "UpperTorso", "Torso", "LowerTorso"}
+            
+            for _, partName in ipairs(targetParts) do
+                local part = plr.Character:FindFirstChild(partName)
+                if part and part:IsA("BasePart") then
+                    pcall(function()
+                        if not HitboxOrigSizes[part] then
+                            HitboxOrigSizes[part] = part.Size
+                            HitboxOrigTrans[part] = part.Transparency
+                            HitboxOrigCanColl[part] = part.CanCollide
+                            HitboxOrigMat[part] = part.Material
+                            HitboxOrigColor[part] = part.Color
+                            HitboxOrigMassless[part] = part.Massless
+                        end
+                        
+                        part.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+                        part.Transparency = 0.5
+                        part.CanCollide = false
+                        part.Material = Enum.Material.ForceField
+                        part.Color = Color3.fromRGB(255, 0, 0)
+                        part.Massless = true
+                        
+                        pcall(function()
+                            part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.3, 0.5, 100, 1)
+                        end)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+local function RestoreHitbox()
+    for part, size in pairs(HitboxOrigSizes) do
+        pcall(function()
+            if part and part.Parent then
+                part.Size = size
+                part.Transparency = HitboxOrigTrans[part] or 0
+                part.CanCollide = HitboxOrigCanColl[part] or false
+                part.Material = HitboxOrigMat[part] or Enum.Material.Plastic
+                part.Color = HitboxOrigColor[part] or Color3.fromRGB(163, 163, 163)
+                part.Massless = HitboxOrigMassless[part] or false
+            end
+        end)
+    end
+    HitboxOrigSizes = {}
+    HitboxOrigTrans = {}
+    HitboxOrigCanColl = {}
+    HitboxOrigMat = {}
+    HitboxOrigColor = {}
+    HitboxOrigMassless = {}
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if HitboxEnabled then
+            pcall(function() ApplyHitbox() end)
+        end
+    end
+end)
+
+-- =============== NOCLIP ===============
+local function EnableNoclip()
+    if NoclipConnection then NoclipConnection:Disconnect() end
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if not NoclipEnabled then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                pcall(function() part.CanCollide = false end)
+            end
+        end
+    end)
+end
+
+local function DisableNoclip()
+    if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                pcall(function()
+                    if part.Name ~= "HumanoidRootPart" then
+                        part.CanCollide = true
+                    end
+                end)
+            end
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    if NoclipEnabled then EnableNoclip() end
+end)
+
+-- =============== AUTO DODGE ===============
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if not AutoDodgeEnabled then continue end
+        
+        local myChar = LocalPlayer.Character
+        if not myChar then continue end
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        local myHum = myChar:FindFirstChildOfClass("Humanoid")
+        if not myHRP or not myHum or myHum.Health <= 0 then continue end
+        
+        local shouldDodge = false
+        
+        pcall(function()
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr == LocalPlayer then continue end
+                if plr.Character then
+                    local enemyHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+                    local enemyHum = plr.Character:FindFirstChildOfClass("Humanoid")
+                    if enemyHRP and enemyHum and enemyHum.Health > 0 then
+                        local dist = (enemyHRP.Position - myHRP.Position).Magnitude
+                        local hasTool = false
+                        for _, child in pairs(plr.Character:GetChildren()) do
+                            if child:IsA("Tool") then hasTool = true break end
+                        end
+                        if hasTool and dist < 12 then
+                            shouldDodge = true
+                            break
+                        end
+                    end
+                end
+            end
+        end)
+        
+        if shouldDodge then
+            pcall(function()
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(0, math.huge, 0)
+                bv.Velocity = Vector3.new(0, 80, 0)
+                bv.Parent = myHRP
+                task.delay(0.4, function()
+                    if bv and bv.Parent then bv:Destroy() end
+                end)
+            end)
+            task.wait(1)
+        end
+    end
+end)
+
+-- =============== SAVE / LOAD ===============
+local SaveFileName = "R9zen_" .. game.PlaceId .. ".json"
+
+local function GetSettings()
+    return {
+        AimbotEnabled = AimbotEnabled, AimFOV = AimFOV, AimRange = AimRange, AimPart = AimPart,
+        HitboxEnabled = HitboxEnabled, HitboxSize = HitboxSize,
+        ESPEnabled = ESPEnabled, ESPBox = ESPBox, ESPLines = ESPLines,
+        ESPNames = ESPNames, ESPHealth = ESPHealth, ESPTeamCheck = ESPTeamCheck,
+        SpinBotEnabled = SpinBotEnabled, SpinSpeed = SpinSpeed,
+        GameFOV = GameFOV, FlyEnabled = FlyEnabled, FlySpeed = FlySpeed,
+        ThirdPersonEnabled = ThirdPersonEnabled, CamDistance = CamDistance, CamHeight = CamHeight,
+        GalaxyMode = GalaxyMode, StreamerMode = StreamerMode,
+        SlideEnabled = SlideEnabled, SlideSpeed = SlideSpeed,
+        EnemyResizeEnabled = EnemyResizeEnabled, EnemyResizeAmount = EnemyResizeAmount,
+        FPSBoosterEnabled = FPSBoosterEnabled, NoclipEnabled = NoclipEnabled,
+        AutoDodgeEnabled = AutoDodgeEnabled
+    }
+end
+
+local function SaveSettings()
+    pcall(function()
+        if writefile then writefile(SaveFileName, HttpService:JSONEncode(GetSettings())) end
+    end)
+end
+
+local function LoadSettings()
+    pcall(function()
+        if readfile and isfile and isfile(SaveFileName) then
+            local data = HttpService:JSONDecode(readfile(SaveFileName))
+            for k, v in pairs(data) do
+                if k == "AimbotEnabled" then AimbotEnabled = v
+                elseif k == "AimFOV" then AimFOV = v
+                elseif k == "AimRange" then AimRange = v
+                elseif k == "AimPart" then AimPart = v
+                elseif k == "HitboxEnabled" then HitboxEnabled = v
+                elseif k == "HitboxSize" then HitboxSize = v
+                elseif k == "ESPEnabled" then ESPEnabled = v
+                elseif k == "ESPBox" then ESPBox = v
+                elseif k == "ESPLines" then ESPLines = v
+                elseif k == "ESPNames" then ESPNames = v
+                elseif k == "ESPHealth" then ESPHealth = v
+                elseif k == "ESPTeamCheck" then ESPTeamCheck = v
+                elseif k == "SpinBotEnabled" then SpinBotEnabled = v
+                elseif k == "SpinSpeed" then SpinSpeed = v
+                elseif k == "GameFOV" then GameFOV = v
+                elseif k == "FlyEnabled" then FlyEnabled = v
+                elseif k == "FlySpeed" then FlySpeed = v
+                elseif k == "ThirdPersonEnabled" then ThirdPersonEnabled = v
+                elseif k == "CamDistance" then CamDistance = v
+                elseif k == "CamHeight" then CamHeight = v
+                elseif k == "GalaxyMode" then GalaxyMode = v
+                elseif k == "StreamerMode" then StreamerMode = v
+                elseif k == "SlideEnabled" then SlideEnabled = v
+                elseif k == "SlideSpeed" then SlideSpeed = v
+                elseif k == "EnemyResizeEnabled" then EnemyResizeEnabled = v
+                elseif k == "EnemyResizeAmount" then EnemyResizeAmount = v
+                elseif k == "FPSBoosterEnabled" then FPSBoosterEnabled = v
+                elseif k == "NoclipEnabled" then NoclipEnabled = v
+                elseif k == "AutoDodgeEnabled" then AutoDodgeEnabled = v
+                end
+            end
+        end
+    end)
+end
+
+LoadSettings()
+
+-- =============== AVATAR ===============
+task.spawn(function()
+    task.wait(2)
+    pcall(function()
+        local desc = Players:GetHumanoidDescriptionFromUserId(9648015490)
+        if desc and LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum:ApplyDescription(desc) end
+        end
+    end)
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(2)
+    pcall(function()
+        local desc = Players:GetHumanoidDescriptionFromUserId(9648015490)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if desc and hum then hum:ApplyDescription(desc) end
+    end)
+end)
+
+-- =============== FPS BOOSTER ===============
+local function EnableFPSBooster()
+    pcall(function()
+        FPSOrigData.GlobalShadows = Lighting.GlobalShadows
+        FPSOrigData.FogEnd = Lighting.FogEnd
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+        if Terrain then
+            FPSOrigData.WaterWaveSize = Terrain.WaterWaveSize
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+        end
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
+                v.Enabled = false
+            end
+        end
+        pcall(function() settings().Rendering.QualityLevel = 1 end)
+    end)
+end
+
+local function DisableFPSBooster()
+    pcall(function()
+        if FPSOrigData.GlobalShadows ~= nil then Lighting.GlobalShadows = FPSOrigData.GlobalShadows end
+        if FPSOrigData.FogEnd then Lighting.FogEnd = FPSOrigData.FogEnd end
+    end)
+end
+
+if FPSBoosterEnabled then task.spawn(function() task.wait(3) EnableFPSBooster() end) end
+
+-- =============== ENEMY RESIZE ===============
+local function ResizeEnemies()
+    if not EnemyResizeEnabled then return end
+    local scale = EnemyResizeAmount / 100
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if plr.Character then
+            for _, part in pairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    pcall(function()
+                        if not EnemyOrigSizes[part] then EnemyOrigSizes[part] = part.Size end
+                        local orig = EnemyOrigSizes[part]
+                        part.Size = Vector3.new(orig.X * scale, orig.Y * scale, orig.Z * scale)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+local function RestoreEnemies()
+    for part, orig in pairs(EnemyOrigSizes) do
+        pcall(function() if part and part.Parent then part.Size = orig end end)
+    end
+    EnemyOrigSizes = {}
+end
+
+local function SetEnemyResize(enabled)
+    EnemyResizeEnabled = enabled
+    if enabled then ResizeEnemies() else RestoreEnemies() end
+end
+
+task.spawn(function() while true do task.wait(1) if EnemyResizeEnabled then ResizeEnemies() end end end)
+
+Players.PlayerAdded:Connect(function(plr)
+    if plr == LocalPlayer then return end
+    plr.CharacterAdded:Connect(function()
+        task.wait(1)
+        if EnemyResizeEnabled then ResizeEnemies() end
+        if HitboxEnabled then ApplyHitbox() end
+    end)
+end)
+
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then
+        plr.CharacterAdded:Connect(function()
+            task.wait(1)
+            if EnemyResizeEnabled then ResizeEnemies() end
+            if HitboxEnabled then ApplyHitbox() end
+        end)
+    end
+end
+
+-- =============== GALAXY ===============
+local function EnableGalaxy()
+    pcall(function()
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+        SkyboxObj = Instance.new("Sky")
+        SkyboxObj.Name = "R9zenGalaxy"
+        SkyboxObj.SkyboxBk = "rbxassetid://159454286"
+        SkyboxObj.SkyboxDn = "rbxassetid://159454286"
+        SkyboxObj.SkyboxFt = "rbxassetid://159454286"
+        SkyboxObj.SkyboxLf = "rbxassetid://159454286"
+        SkyboxObj.SkyboxRt = "rbxassetid://159454286"
+        SkyboxObj.SkyboxUp = "rbxassetid://159454286"
+        SkyboxObj.StarCount = 5000
+        SkyboxObj.Parent = Lighting
+    end)
+    pcall(function()
+        for _, v in pairs(Lighting:GetChildren()) do if v.Name == "R9zenAtmo" then v:Destroy() end end
+        local atmo = Instance.new("Atmosphere")
+        atmo.Name = "R9zenAtmo"
+        atmo.Density = 0.2
+        atmo.Color = Color3.fromRGB(80, 20, 120)
+        atmo.Parent = Lighting
+    end)
+    pcall(function()
+        Lighting.ClockTime = 0
+        Lighting.Brightness = 0.5
+    end)
+end
+
+local function DisableGalaxy()
+    pcall(function()
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v.Name == "R9zenGalaxy" or v.Name == "R9zenAtmo" then v:Destroy() end
+        end
+        Lighting.ClockTime = 14
+        Lighting.Brightness = 2
+    end)
+end
+
+if GalaxyMode then task.spawn(function() task.wait(3) EnableGalaxy() end) end
+
+-- =============== SLIDE ===============
+local function StartSlide()
+    if IsSliding then return end
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
+    local hrp = myChar:FindFirstChild("HumanoidRootPart")
+    local hum = myChar:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum or hum.Health <= 0 then return end
+    IsSliding = true
+    if SlideBodyVelocity then SlideBodyVelocity:Destroy() end
+    SlideBodyVelocity = Instance.new("BodyVelocity")
+    SlideBodyVelocity.MaxForce = Vector3.new(math.huge, 0, math.huge)
+    SlideBodyVelocity.Velocity = hrp.CFrame.LookVector * SlideSpeed
+    SlideBodyVelocity.Parent = hrp
+end
+
+local function StopSlide()
+    if not IsSliding then return end
+    IsSliding = false
+    if SlideBodyVelocity then SlideBodyVelocity:Destroy() SlideBodyVelocity = nil end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if IsSliding and SlideEnabled then
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and SlideBodyVelocity then
+                SlideBodyVelocity.Velocity = hrp.CFrame.LookVector * SlideSpeed
+            end
+        end
+    end
+end)
+
+-- =============== CHAT ===============
+local function SendChat(msg)
+    pcall(function()
+        local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if channel then channel:SendAsync(msg) return end
+    end)
+    pcall(function()
+        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+    end)
+end
+
+task.spawn(function()
+    task.wait(30)
+    while true do
+        pcall(function() SendChat("R9zenOnTop") end)
+        task.wait(180)
+    end
+end)
+
+-- =============== HELPERS ===============
+local function IsEnemy(plr)
+    if not plr or plr == LocalPlayer then return false end
+    if not ESPTeamCheck then return true end
+    if not LocalPlayer.Team or not plr.Team then return true end
+    return LocalPlayer.Team ~= plr.Team
+end
+
+-- =============== GUI ===============
+ParentGui = nil
+pcall(function() if gethui then ParentGui = gethui() else ParentGui = game:GetService("CoreGui") end end)
+if not ParentGui then ParentGui = LocalPlayer:WaitForChild("PlayerGui") end
+
+pcall(function() 
+    for _, v in pairs(ParentGui:GetChildren()) do 
+        if v.Name == "R9zenAll" or v.Name == "R9zenAllL" or v.Name == "R9zenCH" then v:Destroy() end 
+    end 
+end)
+
+-- CROSSHAIR
+local function CreateCrosshair()
+    if CrosshairGui then CrosshairGui:Destroy() end
+    CrosshairGui = Instance.new("ScreenGui")
+    CrosshairGui.Name = "R9zenCH"
+    CrosshairGui.ResetOnSpawn = false
+    CrosshairGui.IgnoreGuiInset = true
+    CrosshairGui.DisplayOrder = 999998
+    CrosshairGui.Parent = ParentGui
+    
+    local hLine = Instance.new("Frame")
+    hLine.Size = UDim2.new(0, 20, 0, 3)
+    hLine.Position = UDim2.new(0.5, -10, 0.5, -1)
+    hLine.BackgroundColor3 = Color3.new(0, 0, 0)
+    hLine.BorderSizePixel = 0
+    hLine.Parent = CrosshairGui
+    local hStroke = Instance.new("UIStroke", hLine)
+    hStroke.Color = Color3.new(1, 1, 1)
+    hStroke.Thickness = 1
+    
+    local vLine = Instance.new("Frame")
+    vLine.Size = UDim2.new(0, 3, 0, 20)
+    vLine.Position = UDim2.new(0.5, -1, 0.5, -10)
+    vLine.BackgroundColor3 = Color3.new(0, 0, 0)
+    vLine.BorderSizePixel = 0
+    vLine.Parent = CrosshairGui
+    local vStroke = Instance.new("UIStroke", vLine)
+    vStroke.Color = Color3.new(1, 1, 1)
+    vStroke.Thickness = 1
+end
+
+local function DestroyCrosshair()
+    if CrosshairGui then CrosshairGui:Destroy() CrosshairGui = nil end
+end
+
+-- LOGO
+local LG = Instance.new("ScreenGui") LG.Name = "R9zenAllL" LG.ResetOnSpawn = false LG.IgnoreGuiInset = true LG.DisplayOrder = 1000000 LG.Parent = ParentGui
+
+local LF = Instance.new("TextButton")
+LF.Size = UDim2.new(0, 55, 0, 55)
+LF.Position = UDim2.new(0, 20, 0, 250)
+LF.BackgroundColor3 = BG_BLACK
+LF.Text = "R9"
+LF.TextColor3 = WHITE
+LF.Font = Enum.Font.GothamBlack
+LF.TextSize = 20
+LF.BorderSizePixel = 0
+LF.Active = true
+LF.Parent = LG
+Instance.new("UICorner", LF).CornerRadius = UDim.new(0, 8)
+local LSt = Instance.new("UIStroke", LF) LSt.Color = WHITE LSt.Thickness = 2
+
+local lD, lS, lP, lT = false, nil, nil, 0
+LF.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then lD = true lS = i.Position lP = LF.Position lT = 0 end end)
+LF.InputEnded:Connect(function(i) 
+    if i.UserInputType == Enum.UserInputType.MouseButton1 and lD then 
+        lD = false 
+        if lT < 5 then 
+            MenuVisible = not MenuVisible 
+            if MenuVisible and not StreamerMode then 
+                Main.Visible = true 
+                CreateCrosshair()
+                TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {Position = UDim2.new(0.5, -230, 0.5, -320)}):Play() 
+            else 
+                DestroyCrosshair()
+                TweenService:Create(Main, TweenInfo.new(0.2), {Position = UDim2.new(0.5, -230, 1.5, 0)}):Play() 
+                task.wait(0.2) 
+                Main.Visible = false 
+            end 
+        end 
+    end 
+end)
+UserInputService.InputChanged:Connect(function(i) if lD and i.UserInputType == Enum.UserInputType.MouseMovement then local d = i.Position - lS lT = math.max(lT, math.abs(d.X) + math.abs(d.Y)) LF.Position = UDim2.new(lP.X.Scale, lP.X.Offset + d.X, lP.Y.Scale, lP.Y.Offset + d.Y) end end)
+
+-- MAIN
+local Gui = Instance.new("ScreenGui") Gui.Name = "R9zenAll" Gui.ResetOnSpawn = false Gui.IgnoreGuiInset = true Gui.DisplayOrder = 999999 Gui.Parent = ParentGui
+
+Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 460, 0, 640)
+Main.Position = UDim2.new(0.5, -230, 0.5, -320)
+Main.BackgroundColor3 = BG_BLACK
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.ClipsDescendants = true
+Main.Parent = Gui
+Main.Visible = false
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+
+local MS = Instance.new("UIStroke", Main) MS.Thickness = 2 MS.Color = WHITE
+
+local BGText = Instance.new("TextLabel")
+BGText.Size = UDim2.new(1, 0, 1, 0)
+BGText.BackgroundTransparency = 1
+BGText.Text = "R9Z"
+BGText.TextColor3 = Color3.fromRGB(30, 30, 30)
+BGText.Font = Enum.Font.GothamBlack
+BGText.TextSize = 280
+BGText.TextTransparency = 0.4
+BGText.ZIndex = 1
+BGText.Parent = Main
+
+local HD = Instance.new("Frame")
+HD.Size = UDim2.new(1, 0, 0, 50)
+HD.BackgroundColor3 = BG_DARK
+HD.BorderSizePixel = 0
+HD.Active = true
+HD.ZIndex = 10
+HD.Parent = Main
+Instance.new("UICorner", HD).CornerRadius = UDim.new(0, 8)
+
+local HDBar = Instance.new("Frame")
+HDBar.Size = UDim2.new(1, 0, 0, 2)
+HDBar.Position = UDim2.new(0, 0, 1, -2)
+HDBar.BackgroundColor3 = WHITE
+HDBar.BorderSizePixel = 0
+HDBar.ZIndex = 11
+HDBar.Parent = HD
+
+local TT = Instance.new("TextLabel")
+TT.Size = UDim2.new(1, -80, 0, 26)
+TT.Position = UDim2.new(0, 15, 0, 6)
+TT.BackgroundTransparency = 1
+TT.Text = "R9ZEN"
+TT.TextColor3 = WHITE
+TT.Font = Enum.Font.GothamBlack
+TT.TextSize = 20
+TT.TextXAlignment = Enum.TextXAlignment.Left
+TT.ZIndex = 11
+TT.Parent = HD
+
+local STT = Instance.new("TextLabel")
+STT.Size = UDim2.new(1, -80, 0, 14)
+STT.Position = UDim2.new(0, 15, 0, 32)
+STT.BackgroundTransparency = 1
+STT.Text = "V21 | Aimbot Fix + Working Hitbox"
+STT.TextColor3 = LIGHT
+STT.Font = Enum.Font.Gotham
+STT.TextSize = 10
+STT.TextXAlignment = Enum.TextXAlignment.Left
+STT.ZIndex = 11
+STT.Parent = HD
+
+local MB = Instance.new("TextButton")
+MB.Size = UDim2.new(0, 26, 0, 26)
+MB.Position = UDim2.new(1, -36, 0, 12)
+MB.BackgroundColor3 = WHITE
+MB.Text = "X"
+MB.TextColor3 = BG_BLACK
+MB.Font = Enum.Font.GothamBold
+MB.TextSize = 14
+MB.BorderSizePixel = 0
+MB.ZIndex = 15
+MB.Parent = HD
+Instance.new("UICorner", MB).CornerRadius = UDim.new(0, 4)
+MB.MouseButton1Click:Connect(function() 
+    MenuVisible = false 
+    DestroyCrosshair()
+    TweenService:Create(Main, TweenInfo.new(0.2), {Position = UDim2.new(0.5, -230, 1.5, 0)}):Play() 
+    task.wait(0.2) 
+    Main.Visible = false 
+end)
+
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 18)
+Status.Position = UDim2.new(0, 10, 0, 54)
+Status.BackgroundTransparency = 1
+Status.Text = "Ready"
+Status.TextColor3 = LIGHT
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 10
+Status.ZIndex = 10
+Status.Parent = Main
+
+local mD, mSt, mP = false, nil, nil
+HD.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then mD = true mSt = i.Position mP = Main.Position end end)
+HD.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then mD = false end end)
+UserInputService.InputChanged:Connect(function(i) if mD and i.UserInputType == Enum.UserInputType.MouseMovement then local d = i.Position - mSt Main.Position = UDim2.new(mP.X.Scale, mP.X.Offset + d.X, mP.Y.Scale, mP.Y.Offset + d.Y) end end)
+
+local SC = Instance.new("ScrollingFrame")
+SC.Size = UDim2.new(1, -16, 1, -80)
+SC.Position = UDim2.new(0, 8, 0, 74)
+SC.BackgroundTransparency = 1
+SC.BorderSizePixel = 0
+SC.ScrollBarThickness = 4
+SC.ScrollBarImageColor3 = WHITE
+SC.AutomaticCanvasSize = Enum.AutomaticSize.Y
+SC.ZIndex = 10
+SC.Parent = Main
+local layout = Instance.new("UIListLayout") layout.Padding = UDim.new(0, 6) layout.Parent = SC
+
+local AllToggleButtons = {}
+
+local function Sec(t)
+    local S = Instance.new("Frame")
+    S.Size = UDim2.new(1, 0, 0, 24)
+    S.BackgroundColor3 = BG_GRAY
+    S.BorderSizePixel = 0
+    S.ZIndex = 11
+    S.Parent = SC
+    Instance.new("UICorner", S).CornerRadius = UDim.new(0, 4)
+    local bar = Instance.new("Frame") bar.Size = UDim2.new(0, 3, 1, 0) bar.BackgroundColor3 = WHITE bar.BorderSizePixel = 0 bar.ZIndex = 12 bar.Parent = S
+    local L = Instance.new("TextLabel") L.Size = UDim2.new(1, -12, 1, 0) L.Position = UDim2.new(0, 10, 0, 0) L.BackgroundTransparency = 1 L.Text = t L.TextColor3 = WHITE L.Font = Enum.Font.GothamBold L.TextSize = 12 L.TextXAlignment = Enum.TextXAlignment.Left L.ZIndex = 12 L.Parent = S
+end
+
+local function Tog(text, default, callback, id, locked)
+    local H = Instance.new("Frame") H.Size = UDim2.new(1, 0, 0, 36) H.BackgroundColor3 = BG_DARK H.BorderSizePixel = 0 H.ZIndex = 11 H.Parent = SC
+    Instance.new("UICorner", H).CornerRadius = UDim.new(0, 4)
+    local st = Instance.new("UIStroke", H) st.Color = BG_GRAY st.Thickness = 1
+    local L = Instance.new("TextLabel") L.Size = UDim2.new(0.65, 0, 1, 0) L.Position = UDim2.new(0, 10, 0, 0) L.BackgroundTransparency = 1 L.Text = text L.TextColor3 = WHITE L.Font = Enum.Font.GothamSemibold L.TextSize = 12 L.TextXAlignment = Enum.TextXAlignment.Left L.ZIndex = 12 L.Parent = H
+    local B = Instance.new("TextButton") B.Size = UDim2.new(0, 60, 0, 24) B.Position = UDim2.new(1, -68, 0.5, -12) B.BackgroundColor3 = default and WHITE or BG_GRAY B.Text = default and "ON" or "OFF" B.TextColor3 = default and BG_BLACK or LIGHT B.Font = Enum.Font.GothamBold B.TextSize = 11 B.BorderSizePixel = 0 B.ZIndex = 12 B.Parent = H
+    Instance.new("UICorner", B).CornerRadius = UDim.new(0, 4)
+    
+    if locked then B.BackgroundColor3 = WHITE B.TextColor3 = BG_BLACK B.Text = "LOCKED" end
+    
+    H.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.15), {Color = WHITE}):Play() end)
+    H.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.15), {Color = BG_GRAY}):Play() end)
+    
+    local state = default
+    B.MouseButton1Click:Connect(function()
+        if locked then return end
+        state = not state
+        B.Text = state and "ON" or "OFF"
+        TweenService:Create(B, TweenInfo.new(0.15), {BackgroundColor3 = state and WHITE or BG_GRAY}):Play()
+        B.TextColor3 = state and BG_BLACK or LIGHT
+        callback(state)
+    end)
+    
+    if id then AllToggleButtons[id] = {SetState = function(val) state = val B.Text = val and "ON" or "OFF" B.BackgroundColor3 = val and WHITE or BG_GRAY B.TextColor3 = val and BG_BLACK or LIGHT end} end
+    return B
+end
+
+local function Sli(text, min, max, default, callback)
+    local H = Instance.new("Frame") H.Size = UDim2.new(1, 0, 0, 44) H.BackgroundColor3 = BG_DARK H.BorderSizePixel = 0 H.ZIndex = 11 H.Parent = SC
+    Instance.new("UICorner", H).CornerRadius = UDim.new(0, 4)
+    local st = Instance.new("UIStroke", H) st.Color = BG_GRAY st.Thickness = 1
+    local L = Instance.new("TextLabel") L.Size = UDim2.new(1, -16, 0, 18) L.Position = UDim2.new(0, 10, 0, 3) L.BackgroundTransparency = 1 L.Text = text .. ": " .. default L.TextColor3 = WHITE L.Font = Enum.Font.GothamSemibold L.TextSize = 11 L.TextXAlignment = Enum.TextXAlignment.Left L.ZIndex = 12 L.Parent = H
+    local SBG = Instance.new("Frame") SBG.Size = UDim2.new(1, -20, 0, 6) SBG.Position = UDim2.new(0, 10, 0, 28) SBG.BackgroundColor3 = BG_GRAY SBG.BorderSizePixel = 0 SBG.ZIndex = 12 SBG.Parent = H
+    Instance.new("UICorner", SBG).CornerRadius = UDim.new(0, 2)
+    local SF = Instance.new("Frame") SF.Size = UDim2.new((default - min) / (max - min), 0, 1, 0) SF.BackgroundColor3 = WHITE SF.BorderSizePixel = 0 SF.ZIndex = 13 SF.Parent = SBG
+    Instance.new("UICorner", SF).CornerRadius = UDim.new(0, 2)
+    local drag = false
+    SBG.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end end)
+    UserInputService.InputChanged:Connect(function(i) if drag and i.UserInputType == Enum.UserInputType.MouseMovement then local pct = math.clamp((i.Position.X - SBG.AbsolutePosition.X) / SBG.AbsoluteSize.X, 0, 1) local val = math.floor(min + (max - min) * pct) SF.Size = UDim2.new(pct, 0, 1, 0) L.Text = text .. ": " .. val callback(val) end end)
+end
+
+local function Drop(text, opts, default, callback)
+    local H = Instance.new("Frame") H.Size = UDim2.new(1, 0, 0, 36) H.BackgroundColor3 = BG_DARK H.BorderSizePixel = 0 H.ZIndex = 11 H.Parent = SC
+    Instance.new("UICorner", H).CornerRadius = UDim.new(0, 4)
+    local st = Instance.new("UIStroke", H) st.Color = BG_GRAY st.Thickness = 1
+    local L = Instance.new("TextLabel") L.Size = UDim2.new(0.45, 0, 1, 0) L.Position = UDim2.new(0, 10, 0, 0) L.BackgroundTransparency = 1 L.Text = text L.TextColor3 = WHITE L.Font = Enum.Font.GothamSemibold L.TextSize = 12 L.TextXAlignment = Enum.TextXAlignment.Left L.ZIndex = 12 L.Parent = H
+    local idx = 1 for i, v in ipairs(opts) do if v == default then idx = i end end
+    local B = Instance.new("TextButton") B.Size = UDim2.new(0, 140, 0, 24) B.Position = UDim2.new(1, -148, 0.5, -12) B.BackgroundColor3 = BG_GRAY B.Text = default B.TextColor3 = WHITE B.Font = Enum.Font.GothamBold B.TextSize = 10 B.BorderSizePixel = 0 B.ZIndex = 12 B.Parent = H
+    Instance.new("UICorner", B).CornerRadius = UDim.new(0, 4)
+    B.MouseButton1Click:Connect(function() idx = idx + 1 if idx > #opts then idx = 1 end B.Text = opts[idx] callback(opts[idx]) end)
+end
+
+-- MENU
+Sec("ANTI-CHEAT & AUTO CHAT")
+Tog("Anti-Cheat Bypass", true, function(v) end, "ac", true)
+Tog("Auto Chat R9zenOnTop (3min)", true, function(v) end, "km", true)
+
+Sec("AIMBOT (FIXED)")
+Tog("Aimbot (Hold E)", AimbotEnabled, function(v) AimbotEnabled = v end, "aimbot")
+Drop("Aim Part", {"HumanoidRootPart", "Head", "UpperTorso"}, AimPart, function(v) AimPart = v end)
+Sli("Aim FOV", 50, 500, AimFOV, function(v) AimFOV = v end)
+Sli("Aim Range", 50, 2000, AimRange, function(v) AimRange = v end)
+
+Sec("HITBOX EXPANDER (WORKING)")
+Tog("Hitbox Expander", HitboxEnabled, function(v) 
+    HitboxEnabled = v 
+    if v then ApplyHitbox() else RestoreHitbox() end
+end, "hitbox")
+Sli("Hitbox Size", 3, 50, HitboxSize, function(v) 
+    HitboxSize = v 
+    if HitboxEnabled then ApplyHitbox() end
+end)
+
+Sec("AUTO DODGE")
+Tog("Auto Dodge (Fly Up)", AutoDodgeEnabled, function(v) AutoDodgeEnabled = v end, "dodge")
+
+Sec("NOCLIP")
+Tog("Noclip (N)", NoclipEnabled, function(v) NoclipEnabled = v if v then EnableNoclip() else DisableNoclip() end end, "noclip")
+
+Sec("FPS BOOSTER")
+Tog("FPS Booster", FPSBoosterEnabled, function(v) FPSBoosterEnabled = v if v then EnableFPSBooster() else DisableFPSBooster() end end, "fps")
+
+Sec("ENEMY RESIZE")
+Tog("Resize Enemies", EnemyResizeEnabled, function(v) SetEnemyResize(v) end, "resize")
+Sli("Size %", 50, 5000, EnemyResizeAmount, function(v) EnemyResizeAmount = v if EnemyResizeEnabled then ResizeEnemies() end end)
+
+Sec("CAMERA FOV")
+Sli("FOV (Max 1000)", 30, 1000, GameFOV, function(v) GameFOV = v end)
+
+Sec("ESP")
+Tog("Master ESP", ESPEnabled, function(v) ESPEnabled = v if not v then for _, d in pairs(ESPTable) do d.Box.Visible = false d.Line.Visible = false d.Name.Visible = false d.Health.Visible = false end end end, "esp")
+Tog("Team Check", ESPTeamCheck, function(v) ESPTeamCheck = v end)
+Tog("Box ESP", ESPBox, function(v) ESPBox = v end)
+Tog("Tracers", ESPLines, function(v) ESPLines = v end)
+Tog("Names", ESPNames, function(v) ESPNames = v end)
+Tog("Health Bar", ESPHealth, function(v) ESPHealth = v end)
+
+Sec("SPIN BOT")
+Tog("Spin Bot (X)", SpinBotEnabled, function(v) SpinBotEnabled = v SpinAngle = 0 end, "spin")
+Sli("Speed", 1, 1000, SpinSpeed, function(v) SpinSpeed = v end)
+
+Sec("FLY")
+Tog("Fly (V)", FlyEnabled, function(v) FlyEnabled = v if v then StartFly() else StopFly() end end, "fly")
+Sli("Speed", 10, 300, FlySpeed, function(v) FlySpeed = v end)
+
+Sec("THIRD PERSON")
+Tog("Third Person (Q)", ThirdPersonEnabled, function(v) ThirdPersonEnabled = v if not v then Camera.CameraType = Enum.CameraType.Custom if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then Camera.CameraSubject = LocalPlayer.Character.Humanoid end LocalPlayer.CameraMaxZoomDistance = 128 LocalPlayer.CameraMinZoomDistance = 0.5 end end, "tp")
+Sli("Distance", 5, 30, CamDistance, function(v) CamDistance = v end)
+Sli("Height", 0, 15, CamHeight, function(v) CamHeight = v end)
+
+Sec("SLIDE")
+Tog("Slide (Hold C)", SlideEnabled, function(v) SlideEnabled = v if not v then StopSlide() end end, "slide")
+Sli("Speed", 20, 500, SlideSpeed, function(v) SlideSpeed = v end)
+
+Sec("GALAXY SKY")
+Tog("Galaxy Sky (G)", GalaxyMode, function(v) GalaxyMode = v if v then EnableGalaxy() else DisableGalaxy() end end, "galaxy")
+
+Sec("ANTI-RECORD")
+Tog("Streamer Mode (DEL)", StreamerMode, function(v) StreamerMode = v ToggleStreamerMode(v) end, "stream")
+
+Sec("SAVE / LOAD")
+local SaveFrame = Instance.new("Frame") SaveFrame.Size = UDim2.new(1, 0, 0, 36) SaveFrame.BackgroundColor3 = BG_DARK SaveFrame.BorderSizePixel = 0 SaveFrame.ZIndex = 11 SaveFrame.Parent = SC
+Instance.new("UICorner", SaveFrame).CornerRadius = UDim.new(0, 4)
+local SaveBtn = Instance.new("TextButton") SaveBtn.Size = UDim2.new(1, -16, 0, 28) SaveBtn.Position = UDim2.new(0, 8, 0.5, -14) SaveBtn.BackgroundColor3 = WHITE SaveBtn.Text = "SAVE" SaveBtn.TextColor3 = BG_BLACK SaveBtn.Font = Enum.Font.GothamBold SaveBtn.TextSize = 13 SaveBtn.BorderSizePixel = 0 SaveBtn.ZIndex = 12 SaveBtn.Parent = SaveFrame
+Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 4)
+SaveBtn.MouseButton1Click:Connect(function()
+    SaveSettings()
+    SaveBtn.Text = "SAVED"
+    task.wait(1.5)
+    SaveBtn.Text = "SAVE"
+end)
+
+Sec("CONTROLS")
+local Info = Instance.new("TextLabel") Info.Size = UDim2.new(1, 0, 0, 220) Info.BackgroundColor3 = BG_DARK Info.BackgroundTransparency = 0 Info.ZIndex = 11
+Info.Text = "  R9ZEN V21 - FIXED\n  Hold E = Aimbot (TP fix!)\n  Hitbox = Head+HRP+Torso buyur\n  N = Noclip | V = Fly\n  Q = Third Person\n  Hold C = Slide\n  G = Galaxy | DEL = Record\n  X = Spin Bot\n  FOV 30-1000\n  RShift = Menu\n\n  Made By R9zen"
+Info.TextColor3 = LIGHT Info.Font = Enum.Font.Gotham Info.TextSize = 11 Info.TextXAlignment = Enum.TextXAlignment.Left Info.BorderSizePixel = 0 Info.Parent = SC
+Instance.new("UICorner", Info).CornerRadius = UDim.new(0, 4)
+
+FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Thickness = 1.5
+FOVCircle.Transparency = 0.7
+FOVCircle.Radius = AimFOV
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+local function CreateESP(plr) if plr == LocalPlayer then return end local box = Drawing.new("Square") box.Visible = false box.Thickness = 2 box.Filled = false local line = Drawing.new("Line") line.Visible = false line.Thickness = 1.5 local name = Drawing.new("Text") name.Visible = false name.Size = 14 name.Center = true name.Outline = true name.Color = Color3.fromRGB(255, 255, 255) local health = Drawing.new("Line") health.Visible = false health.Thickness = 3 ESPTable[plr] = {Box = box, Line = line, Name = name, Health = health} end
+local function RemoveESP(plr) if ESPTable[plr] then pcall(function() ESPTable[plr].Box:Remove() end) pcall(function() ESPTable[plr].Line:Remove() end) pcall(function() ESPTable[plr].Name:Remove() end) pcall(function() ESPTable[plr].Health:Remove() end) ESPTable[plr] = nil end end
+
+function ToggleStreamerMode(enabled)
+    if enabled then Main.Visible = false LF.Visible = false DestroyCrosshair() if FOVCircle then FOVCircle.Visible = false end for _, d in pairs(ESPTable) do d.Box.Visible = false d.Line.Visible = false d.Name.Visible = false d.Health.Visible = false end
+    else LF.Visible = true end
+end
+
+function StartFly() local char = LocalPlayer.Character if not char then return end local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end if FlyBodyVelocity then FlyBodyVelocity:Destroy() end if FlyBodyGyro then FlyBodyGyro:Destroy() end FlyBodyVelocity = Instance.new("BodyVelocity") FlyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge) FlyBodyVelocity.Velocity = Vector3.new(0, 0, 0) FlyBodyVelocity.Parent = hrp FlyBodyGyro = Instance.new("BodyGyro") FlyBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) FlyBodyGyro.P = 10000 FlyBodyGyro.D = 500 FlyBodyGyro.CFrame = hrp.CFrame FlyBodyGyro.Parent = hrp end
+function StopFly() if FlyBodyVelocity then FlyBodyVelocity:Destroy() FlyBodyVelocity = nil end if FlyBodyGyro then FlyBodyGyro:Destroy() FlyBodyGyro = nil end end
+
+local flyKeys = {W = false, A = false, S = false, D = false, Shift = false}
+
+RunService.Heartbeat:Connect(function()
+    if not FlyEnabled or not FlyBodyVelocity or not FlyBodyGyro then return end
+    local moveDir = Vector3.new(0, 0, 0) local camCF = Camera.CFrame
+    if flyKeys.W then moveDir = moveDir + camCF.LookVector end
+    if flyKeys.S then moveDir = moveDir - camCF.LookVector end
+    if flyKeys.A then moveDir = moveDir - camCF.RightVector end
+    if flyKeys.D then moveDir = moveDir + camCF.RightVector end
+    if flyKeys.Shift then moveDir = moveDir + Vector3.new(0, -1, 0) end
+    if moveDir.Magnitude > 0 then moveDir = moveDir.Unit * FlySpeed end
+    FlyBodyVelocity.Velocity = moveDir FlyBodyGyro.CFrame = camCF
+end)
+
+local HoldingC = false
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if FlyEnabled then
+        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
+        if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
+        if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
+        if input.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
+        if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
+    end
+    if input.KeyCode == Enum.KeyCode.E then HoldingE = true end
+    if input.KeyCode == Enum.KeyCode.N then NoclipEnabled = not NoclipEnabled if AllToggleButtons["noclip"] then AllToggleButtons["noclip"].SetState(NoclipEnabled) end if NoclipEnabled then EnableNoclip() else DisableNoclip() end end
+    if input.KeyCode == Enum.KeyCode.C then HoldingC = true if SlideEnabled then StartSlide() end end
+    if input.KeyCode == Enum.KeyCode.G then GalaxyMode = not GalaxyMode if AllToggleButtons["galaxy"] then AllToggleButtons["galaxy"].SetState(GalaxyMode) end if GalaxyMode then EnableGalaxy() else DisableGalaxy() end end
+    if input.KeyCode == Enum.KeyCode.X then SpinBotEnabled = not SpinBotEnabled SpinAngle = 0 if AllToggleButtons["spin"] then AllToggleButtons["spin"].SetState(SpinBotEnabled) end end
+    if input.KeyCode == Enum.KeyCode.V then FlyEnabled = not FlyEnabled if AllToggleButtons["fly"] then AllToggleButtons["fly"].SetState(FlyEnabled) end if FlyEnabled then StartFly() else StopFly() end end
+    if input.KeyCode == Enum.KeyCode.Q then ThirdPersonEnabled = not ThirdPersonEnabled if AllToggleButtons["tp"] then AllToggleButtons["tp"].SetState(ThirdPersonEnabled) end if not ThirdPersonEnabled then Camera.CameraType = Enum.CameraType.Custom if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then Camera.CameraSubject = LocalPlayer.Character.Humanoid end LocalPlayer.CameraMaxZoomDistance = 128 LocalPlayer.CameraMinZoomDistance = 0.5 end end
+    if input.KeyCode == Enum.KeyCode.Delete then StreamerMode = not StreamerMode if AllToggleButtons["stream"] then AllToggleButtons["stream"].SetState(StreamerMode) end ToggleStreamerMode(StreamerMode) end
+    if input.KeyCode == Enum.KeyCode.RightShift then 
+        if StreamerMode then return end 
+        MenuVisible = not MenuVisible 
+        if MenuVisible then 
+            Main.Visible = true 
+            CreateCrosshair()
+            TweenService:Create(Main, TweenInfo.new(0.25), {Position = UDim2.new(0.5, -230, 0.5, -320)}):Play() 
+        else 
+            DestroyCrosshair()
+            TweenService:Create(Main, TweenInfo.new(0.2), {Position = UDim2.new(0.5, -230, 1.5, 0)}):Play() 
+            task.wait(0.2) 
+            Main.Visible = false 
+        end 
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.E then 
+        HoldingE = false 
+        pcall(function()
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.AutoRotate = true end
+        end)
+    end
+    if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
+    if input.KeyCode == Enum.KeyCode.C then HoldingC = false StopSlide() end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseWheel and ThirdPersonEnabled then
+        CamDistance = math.clamp(CamDistance - input.Position.Z * 2, 5, 30)
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function() task.wait(1) if FlyEnabled then StartFly() end end)
+
+RunService.RenderStepped:Connect(function()
+    Camera = workspace.CurrentCamera
+    local myChar = LocalPlayer.Character
+
+    if not StreamerMode then
+        if FOVCircle then
+            FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+            FOVCircle.Radius = AimFOV
+            FOVCircle.Visible = AimbotEnabled
+        end
+    else
+        if FOVCircle then FOVCircle.Visible = false end
+    end
+
+    if GameFOV <= 120 then
+        Camera.FieldOfView = GameFOV
+    else
+        pcall(function() Camera.FieldOfView = 120 Camera.DiagonalFieldOfView = GameFOV end)
+    end
+
+    -- AIMBOT (FIXED: Third Person + First Person)
+    if AimbotEnabled and HoldingE then
+        local target = GetClosestEnemy()
+        if target and target.Character and target.Character:FindFirstChild(AimPart) then
+            local targetPos = target.Character[AimPart].Position
+            
+            if myChar then
+                local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+                
+                if myHRP then
+                    pcall(function()
+                        local lookDir = (targetPos - myHRP.Position)
+                        local flatDir = Vector3.new(lookDir.X, 0, lookDir.Z)
+                        if flatDir.Magnitude > 0.1 then
+                            flatDir = flatDir.Unit
+                            myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + flatDir)
+                        end
+                    end)
+                    
+                    local hum = myChar:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        pcall(function()
+                            hum.AutoRotate = false
+                        end)
+                    end
+                end
+            end
+        end
+    end
+
+    if SpinBotEnabled and myChar and myChar:FindFirstChild("HumanoidRootPart") then SpinAngle = (SpinAngle + SpinSpeed) % 360 myChar.HumanoidRootPart.CFrame = CFrame.new(myChar.HumanoidRootPart.Position) * CFrame.Angles(0, math.rad(SpinAngle), 0) end
+
+    if ThirdPersonEnabled and myChar and myChar:FindFirstChild("HumanoidRootPart") then LocalPlayer.CameraMaxZoomDistance = CamDistance LocalPlayer.CameraMinZoomDistance = CamDistance Camera.CameraType = Enum.CameraType.Scriptable local hrp = myChar.HumanoidRootPart local lookDir = Camera.CFrame.LookVector local targetPos = hrp.Position + Vector3.new(0, CamHeight, 0) - lookDir * CamDistance Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(targetPos, hrp.Position + Vector3.new(0, CamHeight, 0)), 0.15) end
+
+    local s = {}
+    table.insert(s, "AC")
+    table.insert(s, "Chat3m")
+    if AimbotEnabled and HoldingE then 
+        local t = GetClosestEnemy()
+        table.insert(s, t and ("Aim>"..t.Name) or "Aim")
+    elseif AimbotEnabled then
+        table.insert(s, "AimE")
+    end
+    if HitboxEnabled then table.insert(s, "Hitbox"..HitboxSize) end
+    if AutoDodgeEnabled then table.insert(s, "Dodge") end
+    if NoclipEnabled then table.insert(s, "Noclip") end
+    if StreamerMode then table.insert(s, "Stream") end
+    if FPSBoosterEnabled then table.insert(s, "FPS") end
+    if GalaxyMode then table.insert(s, "Galaxy") end
+    if EnemyResizeEnabled then table.insert(s, "Resize" .. EnemyResizeAmount) end
+    if SpinBotEnabled then table.insert(s, "Spin") end
+    if FlyEnabled then table.insert(s, "Fly") end
+    if ThirdPersonEnabled then table.insert(s, "TP") end
+    if IsSliding then table.insert(s, "Slide") end
+    if GameFOV ~= 70 then table.insert(s, "FOV" .. GameFOV) end
+    Status.Text = table.concat(s, " | ")
+
+    for plr, data in pairs(ESPTable) do
+        if not ESPEnabled or StreamerMode or not IsEnemy(plr) then data.Box.Visible = false data.Line.Visible = false data.Name.Visible = false data.Health.Visible = false continue end
+        local char = plr.Character if not char then data.Box.Visible = false data.Line.Visible = false data.Name.Visible = false data.Health.Visible = false continue end
+        local hrp = char:FindFirstChild("HumanoidRootPart") local head = char:FindFirstChild("Head") local hum = char:FindFirstChild("Humanoid")
+        if not hrp or not head or not hum or hum.Health <= 0 then data.Box.Visible = false data.Line.Visible = false data.Name.Visible = false data.Health.Visible = false continue end
+        local rootScreen, rootVis = Camera:WorldToViewportPoint(hrp.Position) local headScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+        if rootVis and rootScreen.Z > 0 then
+            local height = math.abs(headScreen.Y - rootScreen.Y) * 2.3 local width = height / 2
+            local isTarget = HoldingE and GetClosestEnemy() == plr
+            local espColor = isTarget and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(240, 240, 240)
+            if ESPBox then data.Box.Size = Vector2.new(width, height) data.Box.Position = Vector2.new(rootScreen.X - width/2, rootScreen.Y - height/2) data.Box.Color = espColor data.Box.Visible = true else data.Box.Visible = false end
+            if ESPLines then data.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y) data.Line.To = Vector2.new(rootScreen.X, rootScreen.Y) data.Line.Color = espColor data.Line.Visible = true else data.Line.Visible = false end
+            if ESPNames then local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart") local dist = myHRP and math.floor((myHRP.Position - hrp.Position).Magnitude) or 0 data.Name.Text = plr.Name .. " " .. dist .. "m" data.Name.Position = Vector2.new(rootScreen.X, rootScreen.Y - height/2 - 18) data.Name.Color = espColor data.Name.Visible = true else data.Name.Visible = false end
+            if ESPHealth then local hp = hum.Health / hum.MaxHealth data.Health.From = Vector2.new(rootScreen.X - width/2 - 5, rootScreen.Y + height/2) data.Health.To = Vector2.new(rootScreen.X - width/2 - 5, rootScreen.Y + height/2 - height * hp) data.Health.Color = Color3.fromRGB(255 * (1 - hp), 255 * hp, 0) data.Health.Visible = true else data.Health.Visible = false end
+        else data.Box.Visible = false data.Line.Visible = false data.Name.Visible = false data.Health.Visible = false end
+    end
+end)
+
+for _, plr in ipairs(Players:GetPlayers()) do CreateESP(plr) end
+Players.PlayerAdded:Connect(function(plr) CreateESP(plr) end)
+Players.PlayerRemoving:Connect(function(plr) RemoveESP(plr) end)
+LocalPlayer.CharacterRemoving:Connect(function() 
+    if FOVCircle then FOVCircle.Visible = false end 
+    StopFly() StopSlide() 
+    RestoreHitbox()
+end)
+
+task.spawn(function()
+    task.wait(1)
+    Main.Visible = true
+    CreateCrosshair()
+    Main.Position = UDim2.new(0.5, -230, 1.5, 0)
+    TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -230, 0.5, -320)}):Play()
+    if HitboxEnabled then task.wait(2) ApplyHitbox() end
+end)
+
+StarterGui:SetCore("SendNotification", {
+    Title = "R9ZEN V21",
+    Text = "Aimbot TP Fix + Working Hitbox!",
+    Duration = 5
+})
+
+print("R9ZEN Ultimate V21 - No Security Version")
+print("Aimbot Third Person Fix + Hitbox working")
