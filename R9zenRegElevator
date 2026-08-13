@@ -1,0 +1,845 @@
+-- =============================================
+-- 🔥 R 9 Z ULTIMATE - LINORIA UI
+-- Keysiz | Her Oyunda Çalışır
+-- =============================================
+
+local Players = game:GetService("Players")
+local RS = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local player = Players.LocalPlayer
+
+-- Karakter
+local char, root, hum
+local originalSpeed, originalJump = 16, 50
+
+local function updateChar()
+    char = player.Character or player.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+    hum = char:WaitForChild("Humanoid")
+    originalSpeed = hum.WalkSpeed
+    originalJump = hum.JumpPower
+end
+updateChar()
+player.CharacterAdded:Connect(updateChar)
+
+-- Bhop değişkenleri
+local bhopSpeed = 16
+
+-- RTX değişkenleri
+local rtxOn = false
+local rtxItems = {}
+
+-- =============================
+-- 📦 LINORIA YÜKLE
+-- =============================
+local repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/"
+
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+-- =============================
+-- 📊 HUD (FPS + HIZ)
+-- =============================
+local HudGui = Instance.new("ScreenGui")
+HudGui.Name = "R9Z_HUD"
+HudGui.IgnoreGuiInset = true
+HudGui.ResetOnSpawn = false
+HudGui.Parent = player.PlayerGui
+
+-- Watermark
+local WM = Instance.new("Frame")
+WM.Size = UDim2.new(0, 155, 0, 26)
+WM.Position = UDim2.new(0, 10, 0, 45)
+WM.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
+WM.BackgroundTransparency = 0.15
+WM.BorderSizePixel = 0
+WM.Parent = HudGui
+Instance.new("UICorner", WM).CornerRadius = UDim.new(0, 6)
+local wmStr = Instance.new("UIStroke", WM)
+wmStr.Color = Color3.fromRGB(150, 150, 160)
+wmStr.Transparency = 0.6
+
+local WMT = Instance.new("TextLabel")
+WMT.Size = UDim2.new(1, 0, 1, 0)
+WMT.BackgroundTransparency = 1
+WMT.Text = "R 9 Z | Ultimate"
+WMT.TextColor3 = Color3.new(1, 1, 1)
+WMT.Font = Enum.Font.GothamBold
+WMT.TextSize = 12
+WMT.Parent = WM
+
+-- FPS
+local FPSF = Instance.new("Frame")
+FPSF.Size = UDim2.new(0, 85, 0, 26)
+FPSF.Position = UDim2.new(1, -95, 0, 45)
+FPSF.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
+FPSF.BackgroundTransparency = 0.15
+FPSF.BorderSizePixel = 0
+FPSF.Parent = HudGui
+Instance.new("UICorner", FPSF).CornerRadius = UDim.new(0, 6)
+
+local FPST = Instance.new("TextLabel")
+FPST.Size = UDim2.new(1, 0, 1, 0)
+FPST.BackgroundTransparency = 1
+FPST.Text = "FPS: 0"
+FPST.TextColor3 = Color3.fromRGB(0, 255, 100)
+FPST.Font = Enum.Font.GothamBold
+FPST.TextSize = 12
+FPST.Parent = FPSF
+
+-- Speed
+local SPF = Instance.new("Frame")
+SPF.Size = UDim2.new(0, 120, 0, 26)
+SPF.Position = UDim2.new(1, -220, 0, 45)
+SPF.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
+SPF.BackgroundTransparency = 0.15
+SPF.BorderSizePixel = 0
+SPF.Parent = HudGui
+Instance.new("UICorner", SPF).CornerRadius = UDim.new(0, 6)
+
+local SPT = Instance.new("TextLabel")
+SPT.Size = UDim2.new(1, 0, 1, 0)
+SPT.BackgroundTransparency = 1
+SPT.Text = "⚡ 0 studs/s"
+SPT.TextColor3 = Color3.fromRGB(255, 200, 0)
+SPT.Font = Enum.Font.GothamBold
+SPT.TextSize = 12
+SPT.Parent = SPF
+
+-- Bhop Bar
+local BHF = Instance.new("Frame")
+BHF.Size = UDim2.new(0, 180, 0, 14)
+BHF.Position = UDim2.new(0.5, -90, 1, -30)
+BHF.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+BHF.BackgroundTransparency = 0.3
+BHF.BorderSizePixel = 0
+BHF.Visible = false
+BHF.Parent = HudGui
+Instance.new("UICorner", BHF).CornerRadius = UDim.new(1, 0)
+
+local BHFill = Instance.new("Frame")
+BHFill.Size = UDim2.new(0, 0, 1, 0)
+BHFill.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+BHFill.BorderSizePixel = 0
+BHFill.Parent = BHF
+Instance.new("UICorner", BHFill).CornerRadius = UDim.new(1, 0)
+
+local BHLbl = Instance.new("TextLabel")
+BHLbl.Size = UDim2.new(1, 0, 1, 0)
+BHLbl.BackgroundTransparency = 1
+BHLbl.Text = "BHOP: OFF"
+BHLbl.TextColor3 = Color3.new(1, 1, 1)
+BHLbl.Font = Enum.Font.GothamBold
+BHLbl.TextSize = 9
+BHLbl.ZIndex = 5
+BHLbl.Parent = BHF
+
+-- FPS Hesap
+local fCount, lTime = 0, tick()
+RS.RenderStepped:Connect(function()
+    fCount = fCount + 1
+    if tick() - lTime >= 1 then
+        local fps = math.floor(fCount / (tick() - lTime))
+        FPST.Text = "FPS: " .. fps
+        if fps >= 60 then FPST.TextColor3 = Color3.fromRGB(0, 255, 100)
+        elseif fps >= 30 then FPST.TextColor3 = Color3.fromRGB(255, 200, 0)
+        else FPST.TextColor3 = Color3.fromRGB(255, 60, 60) end
+        fCount = 0
+        lTime = tick()
+    end
+    if root then
+        SPT.Text = "⚡ " .. math.floor(Vector3.new(root.Velocity.X, 0, root.Velocity.Z).Magnitude) .. " s/s"
+    end
+end)
+
+-- =============================
+-- 🪟 LINORIA PENCERE
+-- =============================
+local Window = Library:CreateWindow({
+    Title = "R 9 Z | Ultimate",
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2
+})
+
+-- =============================
+-- 🏃 PLAYER TAB
+-- =============================
+local PlayerTab = Window:AddTab("Player")
+local SpeedBox = PlayerTab:AddLeftGroupbox("Hız")
+local JumpBox = PlayerTab:AddRightGroupbox("Zıplama")
+local MoveBox = PlayerTab:AddLeftGroupbox("Hareket")
+local CharBox = PlayerTab:AddRightGroupbox("Karakter")
+
+SpeedBox:AddToggle("SpeedToggle", {
+    Text = "Speed Hack",
+    Default = false,
+    Tooltip = "Hızını artır"
+})
+
+SpeedBox:AddSlider("SpeedSlider", {
+    Text = "Walk Speed",
+    Default = 16,
+    Min = 16,
+    Max = 300,
+    Rounding = 0,
+    Compact = false,
+})
+
+JumpBox:AddToggle("JumpToggle", {
+    Text = "Jump Boost",
+    Default = false,
+    Tooltip = "Zıplama gücünü artır"
+})
+
+JumpBox:AddSlider("JumpSlider", {
+    Text = "Jump Power",
+    Default = 50,
+    Min = 50,
+    Max = 400,
+    Rounding = 0,
+    Compact = false,
+})
+
+JumpBox:AddToggle("InfJumpToggle", {
+    Text = "Infinite Jump",
+    Default = false,
+    Tooltip = "Havada sonsuz zıpla"
+})
+
+MoveBox:AddToggle("NoClipToggle", {
+    Text = "NoClip",
+    Default = false,
+    Tooltip = "Duvarlardan geç"
+})
+
+MoveBox:AddToggle("GodToggle", {
+    Text = "God Mode",
+    Default = false,
+    Tooltip = "Ölümsüz ol"
+})
+
+CharBox:AddSlider("TranspSlider", {
+    Text = "Saydamlık",
+    Default = 0,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+    Compact = false,
+    Suffix = "%"
+})
+
+-- =============================
+-- 🐰 BUNNY HOP TAB
+-- =============================
+local BhopTab = Window:AddTab("Bunny Hop")
+local BhopBox = BhopTab:AddLeftGroupbox("CS 1.6 Bhop")
+local BhopSettings = BhopTab:AddRightGroupbox("Bhop Ayarları")
+
+BhopBox:AddLabel("Space + A/D ile strafe yap")
+BhopBox:AddLabel("W ile düz gidersen hız artmaz")
+
+BhopBox:AddToggle("BhopToggle", {
+    Text = "Bunny Hop",
+    Default = false,
+    Tooltip = "CS 1.6 tarzı bunny hop"
+})
+
+BhopSettings:AddSlider("BhopMaxSlider", {
+    Text = "Max Bhop Speed",
+    Default = 100,
+    Min = 40,
+    Max = 200,
+    Rounding = 0,
+    Compact = false,
+})
+
+BhopSettings:AddSlider("BhopAccelSlider", {
+    Text = "Hızlanma (x10)",
+    Default = 8,
+    Min = 1,
+    Max = 30,
+    Rounding = 0,
+    Compact = false,
+})
+
+-- =============================
+-- 👁 VISUAL TAB
+-- =============================
+local VisualTab = Window:AddTab("Visual")
+local FOVBox = VisualTab:AddLeftGroupbox("FOV")
+local LightBox = VisualTab:AddRightGroupbox("Işık")
+local GFXBox = VisualTab:AddLeftGroupbox("Grafik")
+local ESPBox = VisualTab:AddRightGroupbox("ESP")
+
+FOVBox:AddToggle("FOVToggle", {
+    Text = "FOV Kilitle",
+    Default = false,
+    Tooltip = "FOV değerini sabit tut"
+})
+
+FOVBox:AddSlider("FOVSlider", {
+    Text = "FOV",
+    Default = 70,
+    Min = 30,
+    Max = 120,
+    Rounding = 0,
+    Compact = false,
+    Suffix = "°"
+})
+
+FOVBox:AddSlider("ZoomSlider", {
+    Text = "Zoom Distance",
+    Default = 40,
+    Min = 5,
+    Max = 200,
+    Rounding = 0,
+    Compact = false,
+})
+
+LightBox:AddToggle("FullbrightToggle", {
+    Text = "Fullbright",
+    Default = false,
+    Tooltip = "Her yer aydınlık"
+})
+
+LightBox:AddToggle("RTXToggle", {
+    Text = "RTX Shader",
+    Default = false,
+    Tooltip = "Gerçekçi ışıklandırma"
+})
+
+GFXBox:AddButton("FPS Boost", function()
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("PostEffect") or v:IsA("Atmosphere") then v:Destroy() end
+        end
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
+                v.Enabled = false
+            end
+            if v:IsA("MeshPart") then
+                v.Material = Enum.Material.SmoothPlastic
+                pcall(function() v.TextureID = "" end)
+            end
+        end
+    end)
+    Library:Notify("FPS Boost uygulandı!", 3)
+end)
+
+ESPBox:AddToggle("ESPToggle", {
+    Text = "Player ESP",
+    Default = false,
+    Tooltip = "Oyuncuları gör"
+})
+
+-- =============================
+-- 🔪 BIÇAK TAB
+-- =============================
+local KnifeTab = Window:AddTab("Bıçak")
+local KnifeBox = KnifeTab:AddLeftGroupbox("Bıçak Rengi")
+local KnifeExtra = KnifeTab:AddRightGroupbox("Ekstra")
+
+KnifeBox:AddLabel("Bıçak/Tool rengi değiştir"):AddColorPicker("KnifeColor", {
+    Default = Color3.fromRGB(255, 0, 0),
+    Title = "Bıçak Rengi",
+})
+
+KnifeBox:AddToggle("KnifeAutoToggle", {
+    Text = "Sürekli Renk Uygula",
+    Default = false,
+})
+
+KnifeBox:AddButton("Rengi Uygula", function()
+    local color = Options.KnifeColor.Value
+    pcall(function()
+        if char then
+            for _, tool in pairs(char:GetChildren()) do
+                if tool:IsA("Tool") then
+                    for _, part in pairs(tool:GetDescendants()) do
+                        if part:IsA("BasePart") then part.Color = color end
+                    end
+                end
+            end
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    for _, part in pairs(tool:GetDescendants()) do
+                        if part:IsA("BasePart") then part.Color = color end
+                    end
+                end
+            end
+        end
+    end)
+    Library:Notify("Bıçak rengi uygulandı!", 2)
+end)
+
+KnifeExtra:AddToggle("RainbowToggle", {
+    Text = "🌈 Rainbow Bıçak",
+    Default = false,
+})
+
+KnifeExtra:AddDropdown("KnifeMaterial", {
+    Values = {"Metal", "Neon", "Glass", "Diamond Plate", "Foil", "Ice", "Force Field"},
+    Default = 1,
+    Multi = false,
+    Text = "Materyal",
+})
+
+KnifeExtra:AddButton("Materyali Uygula", function()
+    local matMap = {
+        ["Metal"] = Enum.Material.Metal,
+        ["Neon"] = Enum.Material.Neon,
+        ["Glass"] = Enum.Material.Glass,
+        ["Diamond Plate"] = Enum.Material.DiamondPlate,
+        ["Foil"] = Enum.Material.Foil,
+        ["Ice"] = Enum.Material.Ice,
+        ["Force Field"] = Enum.Material.ForceField,
+    }
+    local mat = matMap[Options.KnifeMaterial.Value] or Enum.Material.Metal
+    pcall(function()
+        if char then
+            for _, tool in pairs(char:GetChildren()) do
+                if tool:IsA("Tool") then
+                    for _, part in pairs(tool:GetDescendants()) do
+                        if part:IsA("BasePart") then part.Material = mat end
+                    end
+                end
+            end
+        end
+    end)
+    Library:Notify("Materyal uygulandı!", 2)
+end)
+
+-- =============================
+-- ⚙ MISC TAB
+-- =============================
+local MiscTab = Window:AddTab("Misc")
+local MiscBox = MiscTab:AddLeftGroupbox("Genel")
+local ServerBox = MiscTab:AddRightGroupbox("Sunucu")
+
+MiscBox:AddToggle("AntiAFKToggle", {
+    Text = "Anti AFK",
+    Default = false,
+})
+
+MiscBox:AddButton("💀 Reset Character", function()
+    pcall(function() hum.Health = 0 end)
+end)
+
+MiscBox:AddButton("HUD Gizle/Göster", function()
+    HudGui.Enabled = not HudGui.Enabled
+end)
+
+ServerBox:AddButton("🔄 Rejoin Server", function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+end)
+
+ServerBox:AddButton("🌐 Server Hop", function()
+    pcall(function()
+        local TS = game:GetService("TeleportService")
+        local HS = game:GetService("HttpService")
+        local r = HS:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+        for _, v in pairs(r.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                TS:TeleportToPlaceInstance(game.PlaceId, v.id, player)
+                break
+            end
+        end
+    end)
+end)
+
+-- =============================
+-- 🎨 SETTINGS TAB
+-- =============================
+local SettingsTab = Window:AddTab("Ayarlar")
+local MenuBox = SettingsTab:AddLeftGroupbox("Menü")
+
+MenuBox:AddLabel("Menü Tuşu: INSERT veya RIGHT SHIFT")
+MenuBox:AddButton("Menüyü Kapat", function()
+    Library:Unload()
+    HudGui:Destroy()
+end)
+
+-- Tema
+local ThemeBox = SettingsTab:AddRightGroupbox("Tema")
+ThemeManager:SetLibrary(Library)
+ThemeManager:SetFolder("R9Z")
+ThemeManager:ApplyToGroupbox(ThemeBox)
+
+-- =============================
+-- 🔥 HİLE MOTORLARI
+-- =============================
+
+-- SPEED (sadece toggle açıksa)
+RS.Heartbeat:Connect(function()
+    if not hum then return end
+    if Toggles.SpeedToggle and Toggles.SpeedToggle.Value then
+        pcall(function() hum.WalkSpeed = Options.SpeedSlider.Value end)
+    end
+end)
+
+-- JUMP (sadece toggle açıksa)
+RS.Heartbeat:Connect(function()
+    if not hum then return end
+    if Toggles.JumpToggle and Toggles.JumpToggle.Value then
+        pcall(function()
+            hum.UseJumpPower = true
+            hum.JumpPower = Options.JumpSlider.Value
+        end)
+    end
+end)
+
+-- Speed toggle kapatınca orijinale dön
+Toggles.SpeedToggle:OnChanged(function()
+    if not Toggles.SpeedToggle.Value and hum then
+        pcall(function() hum.WalkSpeed = originalSpeed end)
+    end
+end)
+
+Toggles.JumpToggle:OnChanged(function()
+    if not Toggles.JumpToggle.Value and hum then
+        pcall(function()
+            hum.JumpPower = originalJump
+        end)
+    end
+end)
+
+-- GOD MODE
+RS.Heartbeat:Connect(function()
+    if Toggles.GodToggle and Toggles.GodToggle.Value and hum then
+        pcall(function() hum.Health = hum.MaxHealth end)
+    end
+end)
+
+-- INFINITE JUMP
+UIS.JumpRequest:Connect(function()
+    if Toggles.InfJumpToggle and Toggles.InfJumpToggle.Value and hum then
+        pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
+    end
+end)
+
+-- NOCLIP
+RS.Stepped:Connect(function()
+    if Toggles.NoClipToggle and Toggles.NoClipToggle.Value and char then
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
+        end
+    end
+end)
+
+Toggles.NoClipToggle:OnChanged(function()
+    if not Toggles.NoClipToggle.Value and char then
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+                p.CanCollide = true
+            end
+        end
+    end
+end)
+
+-- SAYDAMLIK
+RS.Heartbeat:Connect(function()
+    if not char then return end
+    local t = (Options.TranspSlider and Options.TranspSlider.Value or 0) / 100
+    pcall(function()
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+                v.Transparency = t
+            end
+            if v:IsA("Accessory") then
+                local h = v:FindFirstChild("Handle")
+                if h then h.Transparency = t end
+            end
+        end
+        local head = char:FindFirstChild("Head")
+        if head then
+            for _, f in pairs(head:GetChildren()) do
+                if f:IsA("Decal") then f.Transparency = t end
+            end
+        end
+    end)
+end)
+
+-- FOV LOCK
+RS.RenderStepped:Connect(function()
+    if Toggles.FOVToggle and Toggles.FOVToggle.Value then
+        pcall(function()
+            workspace.CurrentCamera.FieldOfView = Options.FOVSlider.Value
+        end)
+    end
+end)
+
+-- Zoom Distance
+Options.ZoomSlider:OnChanged(function()
+    pcall(function()
+        player.CameraMaxZoomDistance = Options.ZoomSlider.Value
+    end)
+end)
+
+-- FULLBRIGHT
+RS.RenderStepped:Connect(function()
+    if Toggles.FullbrightToggle and Toggles.FullbrightToggle.Value then
+        Lighting.Brightness = 5
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.FogStart = 100000
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.new(1, 1, 1)
+        Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    end
+end)
+
+-- RTX SHADER
+Toggles.RTXToggle:OnChanged(function()
+    if Toggles.RTXToggle.Value and not rtxOn then
+        rtxOn = true
+        pcall(function()
+            Lighting.Technology = Enum.Technology.Future
+            Lighting.Brightness = 2.5
+            Lighting.ClockTime = 14
+            Lighting.EnvironmentDiffuseScale = 1
+            Lighting.EnvironmentSpecularScale = 1
+
+            local bloom = Instance.new("BloomEffect", Lighting)
+            bloom.Name = "R9Z"
+            bloom.Intensity = 0.9
+            bloom.Size = 28
+            bloom.Threshold = 0.8
+            table.insert(rtxItems, bloom)
+
+            local cc = Instance.new("ColorCorrectionEffect", Lighting)
+            cc.Name = "R9Z"
+            cc.Brightness = 0.05
+            cc.Contrast = 0.2
+            cc.Saturation = 0.3
+            table.insert(rtxItems, cc)
+
+            local sun = Instance.new("SunRaysEffect", Lighting)
+            sun.Name = "R9Z"
+            sun.Intensity = 0.3
+            table.insert(rtxItems, sun)
+
+            local at = Instance.new("Atmosphere", Lighting)
+            at.Name = "R9Z"
+            at.Density = 0.3
+            at.Color = Color3.fromRGB(190, 195, 215)
+            at.Decay = Color3.fromRGB(100, 110, 125)
+            at.Glare = 0.5
+            at.Haze = 1.8
+            table.insert(rtxItems, at)
+        end)
+        Library:Notify("RTX Shader açıldı!", 2)
+    elseif not Toggles.RTXToggle.Value and rtxOn then
+        rtxOn = false
+        for _, v in pairs(rtxItems) do
+            pcall(function() v:Destroy() end)
+        end
+        rtxItems = {}
+        Library:Notify("RTX Shader kapatıldı!", 2)
+    end
+end)
+
+-- BUNNY HOP (CS 1.6 - UÇMAZ)
+Toggles.BhopToggle:OnChanged(function()
+    BHF.Visible = Toggles.BhopToggle.Value
+    if not Toggles.BhopToggle.Value then
+        bhopSpeed = 16
+    end
+end)
+
+RS.RenderStepped:Connect(function()
+    if not (Toggles.BhopToggle and Toggles.BhopToggle.Value) or not hum or not root then
+        BHFill.Size = UDim2.new(0, 0, 1, 0)
+        BHLbl.Text = "BHOP: OFF"
+        return
+    end
+
+    local bhopMax = Options.BhopMaxSlider and Options.BhopMaxSlider.Value or 100
+    local bhopAccel = (Options.BhopAccelSlider and Options.BhopAccelSlider.Value or 8) / 10
+
+    local onGround = hum.FloorMaterial ~= Enum.Material.Air
+    local holdSpace = UIS:IsKeyDown(Enum.KeyCode.Space)
+    local strafing = UIS:IsKeyDown(Enum.KeyCode.A) or UIS:IsKeyDown(Enum.KeyCode.D)
+    local moving = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.S) or strafing
+
+    -- Yerde + space basılı = zıpla
+    if holdSpace and onGround then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        if strafing then
+            bhopSpeed = math.min(bhopSpeed + bhopAccel, bhopMax)
+        end
+    end
+
+    -- Yerde + space yok = hız sıfırla
+    if onGround and not holdSpace then
+        bhopSpeed = 16
+    end
+
+    -- Havada + hareket = ileri it (Y eksenine dokunma!)
+    if not onGround and moving then
+        local md = hum.MoveDirection
+        if md.Magnitude > 0 then
+            root.Velocity = Vector3.new(
+                md.X * bhopSpeed,
+                root.Velocity.Y,  -- Y'ye dokunmuyoruz = uçmaz
+                md.Z * bhopSpeed
+            )
+        end
+    end
+
+    -- HUD güncelle
+    local pct = math.clamp((bhopSpeed - 16) / (bhopMax - 16), 0, 1)
+    BHFill.Size = UDim2.new(pct, 0, 1, 0)
+    BHLbl.Text = "BHOP: " .. math.floor(bhopSpeed)
+
+    if pct < 0.3 then BHFill.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    elseif pct < 0.6 then BHFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+    else BHFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
+end)
+
+-- KNIFE AUTO COLOR
+spawn(function()
+    while task.wait(0.5) do
+        if Toggles.KnifeAutoToggle and Toggles.KnifeAutoToggle.Value and char then
+            local color = Options.KnifeColor and Options.KnifeColor.Value or Color3.new(1, 0, 0)
+            pcall(function()
+                for _, tool in pairs(char:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        for _, part in pairs(tool:GetDescendants()) do
+                            if part:IsA("BasePart") then part.Color = color end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- RAINBOW KNIFE
+spawn(function()
+    local hue = 0
+    while task.wait(0.05) do
+        if Toggles.RainbowToggle and Toggles.RainbowToggle.Value and char then
+            hue = (hue + 0.01) % 1
+            local col = Color3.fromHSV(hue, 1, 1)
+            pcall(function()
+                for _, tool in pairs(char:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        for _, part in pairs(tool:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.Color = col
+                                part.Material = Enum.Material.Neon
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- PLAYER ESP
+spawn(function()
+    while task.wait(1) do
+        if Toggles.ESPToggle and Toggles.ESPToggle.Value then
+            pcall(function()
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character then
+                        local head = p.Character:FindFirstChild("Head")
+                        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                        local pH = p.Character:FindFirstChild("Humanoid")
+                        if head and hrp and pH then
+                            if not head:FindFirstChild("R9Z_ESP") then
+                                local bg = Instance.new("BillboardGui")
+                                bg.Name = "R9Z_ESP"
+                                bg.Size = UDim2.new(0, 200, 0, 50)
+                                bg.StudsOffset = Vector3.new(0, 3, 0)
+                                bg.AlwaysOnTop = true
+                                bg.Parent = head
+
+                                local n = Instance.new("TextLabel", bg)
+                                n.Name = "N"
+                                n.Size = UDim2.new(1, 0, 0.5, 0)
+                                n.BackgroundTransparency = 1
+                                n.Text = p.Name
+                                n.TextColor3 = Color3.new(1, 0, 0)
+                                n.Font = Enum.Font.GothamBold
+                                n.TextSize = 14
+                                n.TextStrokeTransparency = 0
+
+                                local d = Instance.new("TextLabel", bg)
+                                d.Name = "D"
+                                d.Size = UDim2.new(1, 0, 0.5, 0)
+                                d.Position = UDim2.new(0, 0, 0.5, 0)
+                                d.BackgroundTransparency = 1
+                                d.TextColor3 = Color3.new(1, 1, 1)
+                                d.Font = Enum.Font.Gotham
+                                d.TextSize = 11
+                                d.TextStrokeTransparency = 0
+                            end
+
+                            local eg = head:FindFirstChild("R9Z_ESP")
+                            if eg and root then
+                                local dl = eg:FindFirstChild("D")
+                                if dl then
+                                    dl.Text = "[" .. math.floor((root.Position - hrp.Position).Magnitude) .. "m] HP:" .. math.floor(pH.Health)
+                                end
+                            end
+
+                            if not p.Character:FindFirstChild("R9Z_HL") then
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "R9Z_HL"
+                                hl.FillColor = Color3.new(1, 0, 0)
+                                hl.FillTransparency = 0.7
+                                hl.OutlineColor = Color3.new(1, 0, 0)
+                                hl.Parent = p.Character
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            pcall(function()
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character then
+                        local h = p.Character:FindFirstChild("Head")
+                        if h then
+                            local e = h:FindFirstChild("R9Z_ESP")
+                            if e then e:Destroy() end
+                        end
+                        local hl = p.Character:FindFirstChild("R9Z_HL")
+                        if hl then hl:Destroy() end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ANTI AFK
+spawn(function()
+    while task.wait(60) do
+        if Toggles.AntiAFKToggle and Toggles.AntiAFKToggle.Value then
+            pcall(function()
+                local vu = game:GetService("VirtualUser")
+                vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            end)
+        end
+    end
+end)
+
+-- =============================
+-- MENÜ TUŞU
+-- =============================
+Library.ToggleKeybind = Input.new("Insert")
+
+Library:Notify("R 9 Z Ultimate yüklendi!", 3)
+print("✅ R 9 Z Linoria Menu Yüklendi!")
+print("INSERT ile aç/kapat")
