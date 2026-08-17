@@ -1,0 +1,1132 @@
+-- ===========================
+-- OxygenHub v4.0 | 🏃 Speed
+-- Rayfield Style Dropdown
+-- ===========================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local PLACE_ID = 114697347887839
+local KEY = "Oxygen"
+local LOGO_ID = "rbxassetid://88147250534332"
+
+-- WIN LOCATIONS
+local WORLD_1 = {
+    {name = "Win 1",    cframe = CFrame.new(-680, 26, -255)},
+    {name = "Win 5",    cframe = CFrame.new(-934, 26, -254)},
+    {name = "Win 20",   cframe = CFrame.new(-1716, 26, -257)},
+    {name = "Win 100",  cframe = CFrame.new(-3571, 26, -257)},
+    {name = "Win 500",  cframe = CFrame.new(-2881, 172, -253)},
+    {name = "Win 3K",   cframe = CFrame.new(-3047, 172, -253)},
+    {name = "Win 15K",  cframe = CFrame.new(-4315, 280, -256)},
+    {name = "Win 50K",  cframe = CFrame.new(-6158, 280, -254)},
+    {name = "Win 200K", cframe = CFrame.new(-9460, 389, -252)},
+}
+
+-- WRONG GAME
+if game.PlaceId ~= PLACE_ID then
+    local WG = Instance.new("ScreenGui")
+    WG.IgnoreGuiInset = true
+    WG.DisplayOrder = 9999
+    WG.Parent = playerGui
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.Parent = WG
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1, 0, 0, 80)
+    t.Position = UDim2.new(0, 0, 0.5, -40)
+    t.BackgroundTransparency = 1
+    t.Text = "❌ Wrong Game"
+    t.TextColor3 = Color3.fromRGB(255, 60, 60)
+    t.TextSize = 50
+    t.Font = Enum.Font.GothamBold
+    t.Parent = bg
+    task.wait(3)
+    player:Kick("Wrong Game!")
+    return
+end
+
+for _, g in pairs(playerGui:GetChildren()) do
+    if g.Name == "OxygenHub" or g.Name == "OxygenKey" then
+        g:Destroy()
+    end
+end
+
+-- COLORS
+local C = {
+    Bg = Color3.fromRGB(12, 16, 28),
+    Sidebar = Color3.fromRGB(8, 12, 22),
+    Section = Color3.fromRGB(18, 24, 40),
+    Accent = Color3.fromRGB(55, 120, 255),
+    AccentDark = Color3.fromRGB(35, 80, 200),
+    Text = Color3.fromRGB(220, 230, 255),
+    TextDim = Color3.fromRGB(120, 140, 180),
+    Border = Color3.fromRGB(35, 50, 85),
+    Toggle = Color3.fromRGB(28, 36, 58),
+    Tab = Color3.fromRGB(22, 32, 55),
+    Green = Color3.fromRGB(50, 200, 100),
+    Red = Color3.fromRGB(255, 70, 70),
+    Yellow = Color3.fromRGB(255, 200, 60),
+    Dropdown = Color3.fromRGB(22, 30, 50),
+}
+
+-- ===========================
+-- KEY SYSTEM
+-- ===========================
+local KeyGui = Instance.new("ScreenGui")
+KeyGui.Name = "OxygenKey"
+KeyGui.IgnoreGuiInset = true
+KeyGui.DisplayOrder = 9999
+KeyGui.Parent = playerGui
+
+local KeyBg = Instance.new("Frame")
+KeyBg.Size = UDim2.new(1, 0, 1, 0)
+KeyBg.BackgroundColor3 = Color3.fromRGB(5, 8, 15)
+KeyBg.Parent = KeyGui
+
+local KeyBox = Instance.new("Frame")
+KeyBox.Size = UDim2.new(0, 320, 0, 340)
+KeyBox.Position = UDim2.new(0.5, -160, 0.5, -170)
+KeyBox.BackgroundColor3 = C.Bg
+KeyBox.BorderSizePixel = 0
+KeyBox.Parent = KeyGui
+Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0, 10)
+local KBS = Instance.new("UIStroke", KeyBox)
+KBS.Color = C.Accent
+KBS.Thickness = 1.5
+
+local KLogo = Instance.new("ImageLabel")
+KLogo.Size = UDim2.new(0, 80, 0, 80)
+KLogo.Position = UDim2.new(0.5, -40, 0, 25)
+KLogo.BackgroundTransparency = 1
+KLogo.Image = LOGO_ID
+KLogo.Parent = KeyBox
+Instance.new("UICorner", KLogo).CornerRadius = UDim.new(1, 0)
+
+local KTitle = Instance.new("TextLabel")
+KTitle.Size = UDim2.new(1, 0, 0, 30)
+KTitle.Position = UDim2.new(0, 0, 0, 115)
+KTitle.BackgroundTransparency = 1
+KTitle.Text = "OxygenHub"
+KTitle.TextColor3 = C.Accent
+KTitle.TextSize = 22
+KTitle.Font = Enum.Font.GothamBold
+KTitle.Parent = KeyBox
+
+local KSub = Instance.new("TextLabel")
+KSub.Size = UDim2.new(1, 0, 0, 20)
+KSub.Position = UDim2.new(0, 0, 0, 145)
+KSub.BackgroundTransparency = 1
+KSub.Text = "Enter key to continue"
+KSub.TextColor3 = C.TextDim
+KSub.TextSize = 13
+KSub.Font = Enum.Font.Gotham
+KSub.Parent = KeyBox
+
+local KInput = Instance.new("TextBox")
+KInput.Size = UDim2.new(0, 250, 0, 38)
+KInput.Position = UDim2.new(0.5, -125, 0, 185)
+KInput.BackgroundColor3 = C.Section
+KInput.Text = ""
+KInput.PlaceholderText = "Enter key..."
+KInput.PlaceholderColor3 = C.TextDim
+KInput.TextColor3 = C.Text
+KInput.TextSize = 14
+KInput.Font = Enum.Font.Gotham
+KInput.ClearTextOnFocus = true
+KInput.BorderSizePixel = 0
+KInput.Parent = KeyBox
+Instance.new("UICorner", KInput).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", KInput).Color = C.Border
+
+local KSubmit = Instance.new("TextButton")
+KSubmit.Size = UDim2.new(0, 250, 0, 38)
+KSubmit.Position = UDim2.new(0.5, -125, 0, 235)
+KSubmit.BackgroundColor3 = C.Accent
+KSubmit.Text = "Submit"
+KSubmit.TextColor3 = Color3.fromRGB(255, 255, 255)
+KSubmit.TextSize = 15
+KSubmit.Font = Enum.Font.GothamBold
+KSubmit.BorderSizePixel = 0
+KSubmit.AutoButtonColor = false
+KSubmit.Parent = KeyBox
+Instance.new("UICorner", KSubmit).CornerRadius = UDim.new(0, 6)
+
+local KError = Instance.new("TextLabel")
+KError.Size = UDim2.new(1, 0, 0, 20)
+KError.Position = UDim2.new(0, 0, 0, 285)
+KError.BackgroundTransparency = 1
+KError.Text = ""
+KError.TextSize = 13
+KError.Font = Enum.Font.GothamSemibold
+KError.Parent = KeyBox
+
+local keyEvent = Instance.new("BindableEvent")
+
+KSubmit.MouseButton1Click:Connect(function()
+    if KInput.Text == KEY then
+        KError.Text = "✅ Key accepted!"
+        KError.TextColor3 = C.Green
+        task.wait(0.5)
+        KeyGui:Destroy()
+        keyEvent:Fire()
+    else
+        KError.Text = "❌ Wrong key!"
+        KError.TextColor3 = C.Red
+    end
+end)
+
+keyEvent.Event:Wait()
+
+-- ===========================
+-- MAIN GUI
+-- ===========================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "OxygenHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = playerGui
+
+local menuTransparency = 0.05
+local menuScale = 1
+local menuOpen = true
+local animating = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 500, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -190)
+MainFrame.BackgroundColor3 = C.Bg
+MainFrame.BackgroundTransparency = menuTransparency
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MScale = Instance.new("UIScale")
+MScale.Scale = 1
+MScale.Parent = MainFrame
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local MS = Instance.new("UIStroke", MainFrame)
+MS.Color = C.Accent
+MS.Thickness = 1.5
+MS.Transparency = 0.2
+
+-- TOP BAR
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 36)
+TopBar.BackgroundColor3 = C.Sidebar
+TopBar.BackgroundTransparency = menuTransparency
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TBorder = Instance.new("Frame")
+TBorder.Size = UDim2.new(1, 0, 0, 1)
+TBorder.Position = UDim2.new(0, 0, 1, 0)
+TBorder.BackgroundColor3 = C.Accent
+TBorder.BackgroundTransparency = 0.5
+TBorder.BorderSizePixel = 0
+TBorder.Parent = TopBar
+
+local TLogo = Instance.new("ImageLabel")
+TLogo.Size = UDim2.new(0, 22, 0, 22)
+TLogo.Position = UDim2.new(0, 10, 0.5, -11)
+TLogo.BackgroundTransparency = 1
+TLogo.Image = LOGO_ID
+TLogo.Parent = TopBar
+Instance.new("UICorner", TLogo).CornerRadius = UDim.new(1, 0)
+
+local TTitle = Instance.new("TextLabel")
+TTitle.Size = UDim2.new(0, 300, 1, 0)
+TTitle.Position = UDim2.new(0, 40, 0, 0)
+TTitle.BackgroundTransparency = 1
+TTitle.Text = "OxygenHub | 🏃 Speed"
+TTitle.TextColor3 = C.Accent
+TTitle.TextSize = 14
+TTitle.Font = Enum.Font.GothamBold
+TTitle.TextXAlignment = Enum.TextXAlignment.Left
+TTitle.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -60, 0.5, -12)
+CloseBtn.BackgroundColor3 = C.Section
+CloseBtn.Text = "—"
+CloseBtn.TextColor3 = C.Text
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = TopBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
+
+local DestroyBtn = Instance.new("TextButton")
+DestroyBtn.Size = UDim2.new(0, 24, 0, 24)
+DestroyBtn.Position = UDim2.new(1, -30, 0.5, -12)
+DestroyBtn.BackgroundColor3 = C.Red
+DestroyBtn.Text = "✕"
+DestroyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DestroyBtn.TextSize = 13
+DestroyBtn.Font = Enum.Font.GothamBold
+DestroyBtn.BorderSizePixel = 0
+DestroyBtn.Parent = TopBar
+Instance.new("UICorner", DestroyBtn).CornerRadius = UDim.new(0, 5)
+
+-- SIDEBAR
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 110, 1, -36)
+Sidebar.Position = UDim2.new(0, 0, 0, 36)
+Sidebar.BackgroundColor3 = C.Sidebar
+Sidebar.BackgroundTransparency = menuTransparency + 0.05
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SBorder = Instance.new("Frame")
+SBorder.Size = UDim2.new(0, 1, 1, 0)
+SBorder.Position = UDim2.new(1, -1, 0, 0)
+SBorder.BackgroundColor3 = C.Accent
+SBorder.BackgroundTransparency = 0.5
+SBorder.BorderSizePixel = 0
+SBorder.Parent = Sidebar
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(1, -14, 1, -30)
+TabHolder.Position = UDim2.new(0, 7, 0, 7)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = Sidebar
+
+local TLayout = Instance.new("UIListLayout")
+TLayout.Padding = UDim.new(0, 3)
+TLayout.Parent = TabHolder
+
+local ContentArea = Instance.new("Frame")
+ContentArea.Size = UDim2.new(1, -110, 1, -36)
+ContentArea.Position = UDim2.new(0, 110, 0, 36)
+ContentArea.BackgroundTransparency = 1
+ContentArea.ClipsDescendants = false
+ContentArea.Parent = MainFrame
+
+-- ===========================
+-- COMPONENTS
+-- ===========================
+local tabs = {}
+local currentTab = nil
+local openDropdown = nil -- Aynı anda 1 dropdown açık
+
+local function createTab(name, icon)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 26)
+    btn.BackgroundColor3 = C.Tab
+    btn.BackgroundTransparency = 1
+    btn.Text = (icon or "") .. " " .. name
+    btn.TextColor3 = C.TextDim
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamSemibold
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = TabHolder
+    Instance.new("UIPadding", btn).PaddingLeft = UDim.new(0, 8)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 3, 0.5, 0)
+    bar.Position = UDim2.new(0, -5, 0.25, 0)
+    bar.BackgroundColor3 = C.Accent
+    bar.Visible = false
+    bar.Parent = btn
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+    
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.new(1, -16, 1, -16)
+    page.Position = UDim2.new(0, 8, 0, 8)
+    page.BackgroundTransparency = 1
+    page.ScrollBarThickness = 3
+    page.ScrollBarImageColor3 = C.Accent
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.BorderSizePixel = 0
+    page.Visible = false
+    page.Parent = ContentArea
+    
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
+    
+    local tab = {btn = btn, page = page, bar = bar}
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, t in pairs(tabs) do
+            t.page.Visible = false
+            t.btn.BackgroundTransparency = 1
+            t.btn.TextColor3 = C.TextDim
+            t.bar.Visible = false
+        end
+        page.Visible = true
+        btn.BackgroundTransparency = 0
+        btn.TextColor3 = C.Text
+        bar.Visible = true
+        currentTab = tab
+    end)
+    
+    table.insert(tabs, tab)
+    return tab
+end
+
+local function createSection(tab, title)
+    local sec = Instance.new("Frame")
+    sec.Size = UDim2.new(1, 0, 0, 0)
+    sec.BackgroundColor3 = C.Section
+    sec.BackgroundTransparency = menuTransparency + 0.02
+    sec.AutomaticSize = Enum.AutomaticSize.Y
+    sec.Parent = tab.page
+    Instance.new("UICorner", sec).CornerRadius = UDim.new(0, 6)
+    local ss = Instance.new("UIStroke", sec)
+    ss.Color = C.Border
+    ss.Transparency = 0.4
+    local sp = Instance.new("UIPadding", sec)
+    sp.PaddingTop = UDim.new(0, 10)
+    sp.PaddingBottom = UDim.new(0, 12)
+    sp.PaddingLeft = UDim.new(0, 12)
+    sp.PaddingRight = UDim.new(0, 12)
+    local sl = Instance.new("UIListLayout", sec)
+    sl.Padding = UDim.new(0, 8)
+    
+    if title and title ~= "" then
+        local st = Instance.new("TextLabel")
+        st.Size = UDim2.new(1, 0, 0, 20)
+        st.BackgroundTransparency = 1
+        st.Text = title
+        st.TextColor3 = C.Accent
+        st.TextSize = 13
+        st.Font = Enum.Font.GothamBold
+        st.TextXAlignment = Enum.TextXAlignment.Left
+        st.Parent = sec
+    end
+    return sec
+end
+
+-- ===========================
+-- DROPDOWN (RAYFIELD STYLE)
+-- ===========================
+local function createDropdown(parent, name, options, default, callback)
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1, 0, 0, 55)
+    holder.BackgroundTransparency = 1
+    holder.Parent = parent
+    holder.ClipsDescendants = false
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 16)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = C.Text
+    label.TextSize = 12
+    label.Font = Enum.Font.GothamSemibold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = holder
+    
+    local dropBtn = Instance.new("TextButton")
+    dropBtn.Size = UDim2.new(1, 0, 0, 32)
+    dropBtn.Position = UDim2.new(0, 0, 0, 20)
+    dropBtn.BackgroundColor3 = C.Dropdown
+    dropBtn.Text = ""
+    dropBtn.BorderSizePixel = 0
+    dropBtn.AutoButtonColor = false
+    dropBtn.Parent = holder
+    Instance.new("UICorner", dropBtn).CornerRadius = UDim.new(0, 5)
+    local dbs = Instance.new("UIStroke", dropBtn)
+    dbs.Color = C.Border
+    
+    local selectedText = Instance.new("TextLabel")
+    selectedText.Size = UDim2.new(1, -40, 1, 0)
+    selectedText.Position = UDim2.new(0, 12, 0, 0)
+    selectedText.BackgroundTransparency = 1
+    selectedText.Text = default or "Select..."
+    selectedText.TextColor3 = default and C.Text or C.TextDim
+    selectedText.TextSize = 12
+    selectedText.Font = Enum.Font.Gotham
+    selectedText.TextXAlignment = Enum.TextXAlignment.Left
+    selectedText.Parent = dropBtn
+    
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -25, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = C.Accent
+    arrow.TextSize = 10
+    arrow.Font = Enum.Font.GothamBold
+    arrow.Parent = dropBtn
+    
+    -- Dropdown list (ayrı frame, üstte açılır)
+    local listHolder = Instance.new("Frame")
+    listHolder.Size = UDim2.new(1, 0, 0, 0)
+    listHolder.Position = UDim2.new(0, 0, 0, 54)
+    listHolder.BackgroundColor3 = C.Dropdown
+    listHolder.BorderSizePixel = 0
+    listHolder.Visible = false
+    listHolder.ZIndex = 10
+    listHolder.ClipsDescendants = true
+    listHolder.Parent = holder
+    Instance.new("UICorner", listHolder).CornerRadius = UDim.new(0, 5)
+    local lhs = Instance.new("UIStroke", listHolder)
+    lhs.Color = C.Accent
+    lhs.Transparency = 0.5
+    
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, 0, 1, 0)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 3
+    scroll.ScrollBarImageColor3 = C.Accent
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    scroll.BorderSizePixel = 0
+    scroll.ZIndex = 10
+    scroll.Parent = listHolder
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.Parent = scroll
+    
+    local listPad = Instance.new("UIPadding")
+    listPad.PaddingTop = UDim.new(0, 3)
+    listPad.PaddingBottom = UDim.new(0, 3)
+    listPad.PaddingLeft = UDim.new(0, 3)
+    listPad.PaddingRight = UDim.new(0, 3)
+    listPad.Parent = scroll
+    
+    local isOpen = false
+    local currentValue = default
+    
+    -- Option'ları oluştur
+    for _, opt in ipairs(options) do
+        local optBtn = Instance.new("TextButton")
+        optBtn.Size = UDim2.new(1, 0, 0, 26)
+        optBtn.BackgroundColor3 = C.Section
+        optBtn.Text = ""
+        optBtn.BorderSizePixel = 0
+        optBtn.AutoButtonColor = false
+        optBtn.ZIndex = 11
+        optBtn.Parent = scroll
+        Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
+        
+        local optText = Instance.new("TextLabel")
+        optText.Size = UDim2.new(1, -12, 1, 0)
+        optText.Position = UDim2.new(0, 10, 0, 0)
+        optText.BackgroundTransparency = 1
+        optText.Text = opt
+        optText.TextColor3 = C.Text
+        optText.TextSize = 12
+        optText.Font = Enum.Font.Gotham
+        optText.TextXAlignment = Enum.TextXAlignment.Left
+        optText.ZIndex = 11
+        optText.Parent = optBtn
+        
+        optBtn.MouseEnter:Connect(function()
+            TweenService:Create(optBtn, TweenInfo.new(0.1), {BackgroundColor3 = C.AccentDark}):Play()
+        end)
+        optBtn.MouseLeave:Connect(function()
+            TweenService:Create(optBtn, TweenInfo.new(0.1), {BackgroundColor3 = C.Section}):Play()
+        end)
+        
+        optBtn.MouseButton1Click:Connect(function()
+            currentValue = opt
+            selectedText.Text = opt
+            selectedText.TextColor3 = C.Text
+            isOpen = false
+            listHolder.Visible = false
+            arrow.Text = "▼"
+            holder.Size = UDim2.new(1, 0, 0, 55)
+            openDropdown = nil
+            if callback then callback(opt) end
+        end)
+    end
+    
+    dropBtn.MouseButton1Click:Connect(function()
+        -- Diğer dropdown açıksa kapat
+        if openDropdown and openDropdown ~= holder then
+            openDropdown.Visible = false
+            openDropdown.Parent.Size = UDim2.new(1, 0, 0, 55)
+            local otherArrow = openDropdown.Parent:FindFirstChild("TextButton") 
+            if otherArrow then
+                for _, c in pairs(openDropdown.Parent:GetDescendants()) do
+                    if c:IsA("TextLabel") and c.Text == "▲" then c.Text = "▼" end
+                end
+            end
+        end
+        
+        isOpen = not isOpen
+        if isOpen then
+            listHolder.Visible = true
+            local listSize = math.min(#options * 28 + 6, 150)
+            listHolder.Size = UDim2.new(1, 0, 0, listSize)
+            holder.Size = UDim2.new(1, 0, 0, 55 + listSize + 5)
+            arrow.Text = "▲"
+            openDropdown = listHolder
+        else
+            listHolder.Visible = false
+            holder.Size = UDim2.new(1, 0, 0, 55)
+            arrow.Text = "▼"
+            openDropdown = nil
+        end
+    end)
+    
+    return function() return currentValue end
+end
+
+local function createToggle(p, name, cb)
+    local t = Instance.new("TextButton")
+    t.Size = UDim2.new(1, 0, 0, 24)
+    t.BackgroundTransparency = 1
+    t.Text = ""
+    t.AutoButtonColor = false
+    t.Parent = p
+    
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0, 16, 0, 16)
+    box.Position = UDim2.new(0, 0, 0.5, -8)
+    box.BackgroundColor3 = C.Toggle
+    box.BorderSizePixel = 0
+    box.Parent = t
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+    local bs = Instance.new("UIStroke", box)
+    bs.Color = C.Border
+    
+    local ck = Instance.new("Frame")
+    ck.Size = UDim2.new(0, 10, 0, 10)
+    ck.Position = UDim2.new(0.5, -5, 0.5, -5)
+    ck.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ck.BackgroundTransparency = 1
+    ck.BorderSizePixel = 0
+    ck.Parent = box
+    Instance.new("UICorner", ck).CornerRadius = UDim.new(0, 2)
+    
+    local lb = Instance.new("TextLabel")
+    lb.Size = UDim2.new(1, -26, 1, 0)
+    lb.Position = UDim2.new(0, 26, 0, 0)
+    lb.BackgroundTransparency = 1
+    lb.Text = name
+    lb.TextColor3 = C.Text
+    lb.TextSize = 12
+    lb.Font = Enum.Font.Gotham
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+    lb.Parent = t
+    
+    local s = false
+    t.MouseButton1Click:Connect(function()
+        s = not s
+        TweenService:Create(ck, TweenInfo.new(0.15), {BackgroundTransparency = s and 0 or 1}):Play()
+        TweenService:Create(box, TweenInfo.new(0.15), {BackgroundColor3 = s and C.Accent or C.Toggle}):Play()
+        TweenService:Create(bs, TweenInfo.new(0.15), {Color = s and C.Accent or C.Border}):Play()
+        cb(s)
+    end)
+    return function() return s end
+end
+
+local function createSlider(p, name, min, max, def, cb, dec)
+    local h = Instance.new("Frame")
+    h.Size = UDim2.new(1, 0, 0, 40)
+    h.BackgroundTransparency = 1
+    h.Parent = p
+    
+    local lb = Instance.new("TextLabel")
+    lb.Size = UDim2.new(1, 0, 0, 16)
+    lb.BackgroundTransparency = 1
+    lb.Text = name .. ": " .. (dec and string.format("%.2f", def) or tostring(def))
+    lb.TextColor3 = C.Text
+    lb.TextSize = 12
+    lb.Font = Enum.Font.Gotham
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+    lb.Parent = h
+    
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, 0, 0, 6)
+    bar.Position = UDim2.new(0, 0, 0, 24)
+    bar.BackgroundColor3 = C.Toggle
+    bar.BorderSizePixel = 0
+    bar.Parent = h
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = C.Accent
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+    
+    local sbtn = Instance.new("TextButton")
+    sbtn.Size = UDim2.new(1, 0, 3, 0)
+    sbtn.Position = UDim2.new(0, 0, -1, 0)
+    sbtn.BackgroundTransparency = 1
+    sbtn.Text = ""
+    sbtn.Parent = bar
+    
+    local drag = false
+    sbtn.MouseButton1Down:Connect(function() drag = true end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            local v = dec and math.floor((min + (max - min) * pos) * 100) / 100 or math.floor(min + (max - min) * pos)
+            lb.Text = name .. ": " .. (dec and string.format("%.2f", v) or tostring(v))
+            cb(v)
+        end
+    end)
+end
+
+local function createButton(p, name, color, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 32)
+    b.BackgroundColor3 = color or C.Accent
+    b.Text = name
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.Parent = p
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+    b.MouseButton1Click:Connect(cb)
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.1), {BackgroundTransparency = 0.15}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.1), {BackgroundTransparency = 0}):Play()
+    end)
+end
+
+local function createLabel(p, text, color)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 0, 18)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or C.TextDim
+    l.TextSize = 12
+    l.Font = Enum.Font.Gotham
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = p
+    return l
+end
+
+-- ===========================
+-- PROPER TOUCH BYPASS
+-- ===========================
+local function fireTouchAll(hrp, part)
+    -- Method 1: firetouchinterest (best method)
+    if firetouchinterest then
+        pcall(function()
+            firetouchinterest(hrp, part, 0)
+            firetouchinterest(hrp, part, 1)
+        end)
+    end
+    
+    -- Method 2: Trigger Touched event manually via TouchedConnection
+    pcall(function()
+        for _, connection in pairs(getconnections and getconnections(part.Touched) or {}) do
+            pcall(function() connection:Fire(hrp) end)
+        end
+    end)
+end
+
+local function findWinPadNear(cframe, radius)
+    local pads = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            local dist = (v.Position - cframe.Position).Magnitude
+            if dist < radius then
+                local n = v.Name:lower()
+                if n:find("win") or n:find("pad") or n:find("finish") 
+                    or n:find("end") or n:find("goal") or n:find("touch")
+                    or n:find("teleport") or n:find("part") then
+                    table.insert(pads, {part = v, dist = dist})
+                end
+            end
+        end
+    end
+    -- En yakını başa koy
+    table.sort(pads, function(a, b) return a.dist < b.dist end)
+    return pads
+end
+
+-- Get all names from win locations for dropdown
+local winNames = {}
+for _, loc in ipairs(WORLD_1) do
+    table.insert(winNames, loc.name)
+end
+
+local function getLocationByName(name)
+    for _, loc in ipairs(WORLD_1) do
+        if loc.name == name then return loc end
+    end
+    return nil
+end
+
+-- ===========================
+-- AUTO WIN VARS
+-- ===========================
+local autoWinActive = false
+local selectedWinName = nil
+local tpCount = 0
+local tpDelay = 0.5
+local bypassEnabled = true
+
+-- ===========================
+-- 🏆 AUTO WIN TAB (RAYFIELD STYLE)
+-- ===========================
+local awTab = createTab("Auto Win", "🏆")
+
+local selectSec = createSection(awTab, "Win Selection")
+
+local getSelectedWin = createDropdown(selectSec, "Select Win Amount", winNames, "Win 1", function(selected)
+    selectedWinName = selected
+    print("Selected:", selected)
+end)
+selectedWinName = "Win 1"
+
+-- Status labels
+local statusLabel = createLabel(selectSec, "Status: Idle", C.TextDim)
+local countLabel = createLabel(selectSec, "TP Count: 0", C.TextDim)
+
+local controlSec = createSection(awTab, "Controls")
+
+createSlider(controlSec, "TP Delay (seconds)", 0.2, 3, 0.5, function(v)
+    tpDelay = v
+end, true)
+
+createToggle(controlSec, "Touch Bypass (Fixes non-working wins)", function(s)
+    bypassEnabled = s
+end)
+
+createButton(controlSec, "▶  START AUTO WIN", C.Green, function()
+    if autoWinActive then return end
+    
+    local winName = getSelectedWin()
+    if not winName then
+        statusLabel.Text = "Status: ❌ Select a win first!"
+        statusLabel.TextColor3 = C.Red
+        return
+    end
+    
+    local location = getLocationByName(winName)
+    if not location then
+        statusLabel.Text = "Status: ❌ Invalid location!"
+        statusLabel.TextColor3 = C.Red
+        return
+    end
+    
+    autoWinActive = true
+    tpCount = 0
+    statusLabel.Text = "Status: ✅ Running - " .. winName
+    statusLabel.TextColor3 = C.Green
+    
+    task.spawn(function()
+        while autoWinActive do
+            local char = player.Character
+            if not char then
+                player.CharacterAdded:Wait()
+                task.wait(1)
+            end
+            
+            char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            if hrp then
+                -- TP to location
+                hrp.CFrame = location.cframe
+                tpCount = tpCount + 1
+                countLabel.Text = "TP Count: " .. tpCount
+                
+                task.wait(0.15)
+                
+                if bypassEnabled and hrp then
+                    -- Find all nearby win pads
+                    local pads = findWinPadNear(location.cframe, 20)
+                    
+                    -- Fire touch on ALL nearby pads
+                    for _, padData in pairs(pads) do
+                        fireTouchAll(hrp, padData.part)
+                    end
+                    
+                    -- Also fire touch on ALL character parts to be safe
+                    for _, charPart in pairs(char:GetChildren()) do
+                        if charPart:IsA("BasePart") then
+                            for _, padData in pairs(pads) do
+                                pcall(function()
+                                    if firetouchinterest then
+                                        firetouchinterest(charPart, padData.part, 0)
+                                        firetouchinterest(charPart, padData.part, 1)
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                end
+                
+                -- Wait for respawn OR delay
+                local respawned = false
+                local conn
+                conn = player.CharacterAdded:Connect(function()
+                    respawned = true
+                end)
+                
+                local waited = 0
+                while not respawned and waited < tpDelay and autoWinActive do
+                    task.wait(0.1)
+                    waited = waited + 0.1
+                end
+                
+                if conn then conn:Disconnect() end
+                
+                if respawned then
+                    task.wait(0.3) -- Wait for character to fully load
+                end
+            else
+                task.wait(0.5)
+            end
+        end
+    end)
+end)
+
+createButton(controlSec, "⏹  STOP AUTO WIN", C.Red, function()
+    autoWinActive = false
+    statusLabel.Text = "Status: ⏹ Stopped"
+    statusLabel.TextColor3 = C.Yellow
+end)
+
+createButton(controlSec, "🔄  Reset Counter", C.Toggle, function()
+    tpCount = 0
+    countLabel.Text = "TP Count: 0"
+end)
+
+-- Quick TP Section
+local quickSec = createSection(awTab, "Quick Teleport")
+
+local getQuickWin = createDropdown(quickSec, "Choose Location", winNames, "Win 1", function(s) end)
+
+createButton(quickSec, "🚀  Teleport Now", C.Accent, function()
+    local winName = getQuickWin()
+    local location = getLocationByName(winName)
+    if location then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = location.cframe
+            
+            if bypassEnabled then
+                task.wait(0.15)
+                local pads = findWinPadNear(location.cframe, 20)
+                for _, padData in pairs(pads) do
+                    fireTouchAll(char.HumanoidRootPart, padData.part)
+                end
+            end
+        end
+    end
+end)
+
+-- ===========================
+-- 🏃 PLAYER TAB
+-- ===========================
+local plTab = createTab("Player", "🏃")
+local movSec = createSection(plTab, "Movement")
+
+createSlider(movSec, "Walk Speed", 16, 500, 16, function(v)
+    local h = player.Character and player.Character:FindFirstChild("Humanoid")
+    if h then h.WalkSpeed = v end
+end)
+
+createSlider(movSec, "Jump Power", 50, 500, 50, function(v)
+    local h = player.Character and player.Character:FindFirstChild("Humanoid")
+    if h then h.JumpPower = v end
+end)
+
+local jConn
+createToggle(movSec, "Infinite Jump", function(s)
+    if s then
+        jConn = UserInputService.JumpRequest:Connect(function()
+            local h = player.Character and player.Character:FindFirstChild("Humanoid")
+            if h then h:ChangeState("Jumping") end
+        end)
+    else
+        if jConn then jConn:Disconnect() end
+    end
+end)
+
+local ncConn
+createToggle(movSec, "Noclip", function(s)
+    if s then
+        ncConn = RunService.Stepped:Connect(function()
+            local c = player.Character
+            if c then
+                for _, p in pairs(c:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false end
+                end
+            end
+        end)
+    else
+        if ncConn then ncConn:Disconnect() end
+    end
+end)
+
+local safeSec = createSection(plTab, "Safety")
+
+local afConn
+createToggle(safeSec, "Anti-Fling", function(s)
+    if s then
+        afConn = RunService.Heartbeat:Connect(function()
+            local c = player.Character
+            if not c then return end
+            local hrp = c:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            if hrp.AssemblyLinearVelocity.Magnitude > 150 then
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            end
+            if hrp.AssemblyAngularVelocity.Magnitude > 80 then
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end
+        end)
+    else
+        if afConn then afConn:Disconnect() end
+    end
+end)
+
+createToggle(safeSec, "Anti-AFK", function(s)
+    if s then
+        pcall(function()
+            local vu = game:GetService("VirtualUser")
+            player.Idled:Connect(function()
+                vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                wait(1)
+                vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            end)
+        end)
+    end
+end)
+
+-- ===========================
+-- ⚡ FPS BOOST TAB
+-- ===========================
+local fpsTab = createTab("FPS", "⚡")
+local fpsSec = createSection(fpsTab, "Performance")
+
+createToggle(fpsSec, "Full FPS Boost", function(s)
+    if s then
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Trail") then
+                v.Enabled = false
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+        end
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic end
+        end
+    end
+end)
+
+createToggle(fpsSec, "Remove Textures", function(s)
+    if s then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
+        end
+    end
+end)
+
+-- ===========================
+-- ⚙️ SETTINGS TAB
+-- ===========================
+local stTab = createTab("Settings", "⚙️")
+local uiSec = createSection(stTab, "UI")
+
+createSlider(uiSec, "Transparency", 0, 80, 5, function(v)
+    menuTransparency = v / 100
+    MainFrame.BackgroundTransparency = menuTransparency
+    TopBar.BackgroundTransparency = menuTransparency
+    Sidebar.BackgroundTransparency = menuTransparency + 0.05
+end)
+
+createSlider(uiSec, "Scale", 50, 150, 100, function(v)
+    menuScale = v / 100
+    MScale.Scale = menuScale
+end)
+
+local srvSec = createSection(stTab, "Server")
+createButton(srvSec, "🔄 Rejoin", C.Accent, function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+end)
+createButton(srvSec, "💀 Reset", C.Red, function()
+    if player.Character then player.Character:BreakJoints() end
+end)
+
+-- First tab
+if tabs[1] then
+    tabs[1].page.Visible = true
+    tabs[1].btn.BackgroundTransparency = 0
+    tabs[1].btn.TextColor3 = C.Text
+    tabs[1].bar.Visible = true
+    currentTab = tabs[1]
+end
+
+-- TOGGLE BUTTON
+local TB = Instance.new("ImageButton")
+TB.Size = UDim2.new(0, 42, 0, 42)
+TB.Position = UDim2.new(0, 12, 0.5, -21)
+TB.BackgroundColor3 = C.Bg
+TB.BackgroundTransparency = 0.15
+TB.Image = LOGO_ID
+TB.Visible = false
+TB.Parent = ScreenGui
+Instance.new("UICorner", TB).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", TB).Color = C.Accent
+
+local function openMenu()
+    if animating then return end
+    animating = true
+    MainFrame.Visible = true
+    TB.Visible = false
+    MScale.Scale = 0.85
+    MainFrame.BackgroundTransparency = 1
+    TweenService:Create(MScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = menuScale}):Play()
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {BackgroundTransparency = menuTransparency}):Play()
+    task.wait(0.25)
+    menuOpen = true
+    animating = false
+end
+
+local function closeMenu()
+    if animating then return end
+    animating = true
+    TweenService:Create(MScale, TweenInfo.new(0.2), {Scale = 0.85}):Play()
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+    task.wait(0.2)
+    MainFrame.Visible = false
+    TB.Visible = true
+    MScale.Scale = menuScale
+    menuOpen = false
+    animating = false
+end
+
+TB.MouseButton1Click:Connect(openMenu)
+CloseBtn.MouseButton1Click:Connect(closeMenu)
+DestroyBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        if menuOpen then closeMenu() else openMenu() end
+    end
+end)
+
+print("✅ OxygenHub v4.0 loaded!")
+print("📋 Dropdown ready - Select win amount and start!")
