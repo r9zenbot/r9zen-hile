@@ -1,0 +1,592 @@
+-- ===========================
+-- OxygenHub Trade Console v5
+-- Key: PetSim99Vaules
+-- ===========================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local KEY = "PetSim99Vaules"
+local DISCORD_LINK = "https://discord.gg/JwX9E5P6Rq"
+local LOGO_ID = "rbxassetid://88147250534332"
+
+for _, g in pairs(playerGui:GetChildren()) do
+    if g.Name == "TradeConsole" or g.Name == "OxygenKey" then g:Destroy() end
+end
+
+local C = {
+    Bg = Color3.fromRGB(10, 10, 18),
+    Input = Color3.fromRGB(18, 22, 38),
+    Section = Color3.fromRGB(20, 24, 42),
+    Accent = Color3.fromRGB(55, 120, 255),
+    AccentDark = Color3.fromRGB(35, 80, 200),
+    Text = Color3.fromRGB(200, 210, 230),
+    TextDim = Color3.fromRGB(100, 120, 160),
+    Border = Color3.fromRGB(40, 50, 90),
+    Green = Color3.fromRGB(50, 220, 100),
+    Red = Color3.fromRGB(255, 60, 60),
+    Yellow = Color3.fromRGB(255, 200, 60),
+    System = Color3.fromRGB(180, 130, 255),
+    Discord = Color3.fromRGB(88, 101, 242),
+}
+
+-- ===========================
+-- KEY SYSTEM
+-- ===========================
+local KeyGui = Instance.new("ScreenGui")
+KeyGui.Name = "OxygenKey"
+KeyGui.IgnoreGuiInset = true
+KeyGui.DisplayOrder = 9999
+KeyGui.Parent = playerGui
+
+local KeyBg = Instance.new("Frame")
+KeyBg.Size = UDim2.new(1, 0, 1, 0)
+KeyBg.BackgroundColor3 = Color3.fromRGB(5, 8, 15)
+KeyBg.BackgroundTransparency = 1
+KeyBg.Parent = KeyGui
+
+local KeyBox = Instance.new("Frame")
+KeyBox.Size = UDim2.new(0, 380, 0, 420)
+KeyBox.Position = UDim2.new(0.5, -190, 0.5, -210)
+KeyBox.BackgroundColor3 = C.Bg
+KeyBox.BackgroundTransparency = 1
+KeyBox.BorderSizePixel = 0
+KeyBox.Parent = KeyGui
+Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0, 12)
+local KBS = Instance.new("UIStroke", KeyBox)
+KBS.Color = C.Accent
+KBS.Thickness = 2
+KBS.Transparency = 1
+
+-- LOGO
+local KLogo = Instance.new("ImageLabel")
+KLogo.Size = UDim2.new(0, 90, 0, 90)
+KLogo.Position = UDim2.new(0.5, -45, 0, 25)
+KLogo.BackgroundTransparency = 1
+KLogo.Image = LOGO_ID
+KLogo.ImageTransparency = 1
+KLogo.Parent = KeyBox
+Instance.new("UICorner", KLogo).CornerRadius = UDim.new(1, 0)
+
+-- TITLE
+local KTitle = Instance.new("TextLabel")
+KTitle.Size = UDim2.new(1, 0, 0, 30)
+KTitle.Position = UDim2.new(0, 0, 0, 125)
+KTitle.BackgroundTransparency = 1
+KTitle.Text = "OxygenHub"
+KTitle.TextColor3 = C.Accent
+KTitle.TextSize = 24
+KTitle.Font = Enum.Font.GothamBold
+KTitle.TextTransparency = 1
+KTitle.Parent = KeyBox
+
+local KSub = Instance.new("TextLabel")
+KSub.Size = UDim2.new(1, 0, 0, 18)
+KSub.Position = UDim2.new(0, 0, 0, 152)
+KSub.BackgroundTransparency = 1
+KSub.Text = "Trade Console - PetSim99"
+KSub.TextColor3 = C.TextDim
+KSub.TextSize = 12
+KSub.Font = Enum.Font.Gotham
+KSub.TextTransparency = 1
+KSub.Parent = KeyBox
+
+-- KEY INPUT
+local KInput = Instance.new("TextBox")
+KInput.Size = UDim2.new(0, 300, 0, 40)
+KInput.Position = UDim2.new(0.5, -150, 0, 190)
+KInput.BackgroundColor3 = C.Section
+KInput.BackgroundTransparency = 1
+KInput.Text = ""
+KInput.PlaceholderText = "Enter key..."
+KInput.PlaceholderColor3 = C.TextDim
+KInput.TextColor3 = C.Text
+KInput.TextSize = 14
+KInput.Font = Enum.Font.Gotham
+KInput.ClearTextOnFocus = false
+KInput.BorderSizePixel = 0
+KInput.TextTransparency = 1
+KInput.Parent = KeyBox
+Instance.new("UICorner", KInput).CornerRadius = UDim.new(0, 8)
+local KIS = Instance.new("UIStroke", KInput)
+KIS.Color = C.Border
+KIS.Transparency = 1
+
+-- SUBMIT BUTTON
+local KSubmit = Instance.new("TextButton")
+KSubmit.Size = UDim2.new(0, 300, 0, 40)
+KSubmit.Position = UDim2.new(0.5, -150, 0, 240)
+KSubmit.BackgroundColor3 = C.Accent
+KSubmit.BackgroundTransparency = 1
+KSubmit.Text = "SUBMIT"
+KSubmit.TextColor3 = Color3.new(1, 1, 1)
+KSubmit.TextSize = 14
+KSubmit.Font = Enum.Font.GothamBold
+KSubmit.BorderSizePixel = 0
+KSubmit.AutoButtonColor = false
+KSubmit.TextTransparency = 1
+KSubmit.Parent = KeyBox
+Instance.new("UICorner", KSubmit).CornerRadius = UDim.new(0, 8)
+
+-- DISCORD SECTION
+local DiscordDivider = Instance.new("Frame")
+DiscordDivider.Size = UDim2.new(0.7, 0, 0, 1)
+DiscordDivider.Position = UDim2.new(0.15, 0, 0, 295)
+DiscordDivider.BackgroundColor3 = C.Border
+DiscordDivider.BackgroundTransparency = 1
+DiscordDivider.BorderSizePixel = 0
+DiscordDivider.Parent = KeyBox
+
+local DiscordLabel = Instance.new("TextLabel")
+DiscordLabel.Size = UDim2.new(1, 0, 0, 16)
+DiscordLabel.Position = UDim2.new(0, 0, 0, 305)
+DiscordLabel.BackgroundTransparency = 1
+DiscordLabel.Text = "Need a key? Join our Discord:"
+DiscordLabel.TextColor3 = C.TextDim
+DiscordLabel.TextSize = 11
+DiscordLabel.Font = Enum.Font.Gotham
+DiscordLabel.TextTransparency = 1
+DiscordLabel.Parent = KeyBox
+
+-- DISCORD LINK BOX
+local DiscordBox = Instance.new("Frame")
+DiscordBox.Size = UDim2.new(0, 300, 0, 36)
+DiscordBox.Position = UDim2.new(0.5, -150, 0, 328)
+DiscordBox.BackgroundColor3 = C.Discord
+DiscordBox.BackgroundTransparency = 1
+DiscordBox.BorderSizePixel = 0
+DiscordBox.Parent = KeyBox
+Instance.new("UICorner", DiscordBox).CornerRadius = UDim.new(0, 6)
+
+local DiscordText = Instance.new("TextLabel")
+DiscordText.Size = UDim2.new(1, -70, 1, 0)
+DiscordText.Position = UDim2.new(0, 10, 0, 0)
+DiscordText.BackgroundTransparency = 1
+DiscordText.Text = DISCORD_LINK
+DiscordText.TextColor3 = Color3.new(1, 1, 1)
+DiscordText.TextSize = 11
+DiscordText.Font = Enum.Font.Code
+DiscordText.TextXAlignment = Enum.TextXAlignment.Left
+DiscordText.TextTransparency = 1
+DiscordText.Parent = DiscordBox
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0, 60, 0, 28)
+CopyBtn.Position = UDim2.new(1, -66, 0.5, -14)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(60, 75, 200)
+CopyBtn.Text = "COPY"
+CopyBtn.TextColor3 = Color3.new(1, 1, 1)
+CopyBtn.TextSize = 11
+CopyBtn.Font = Enum.Font.GothamBold
+CopyBtn.BorderSizePixel = 0
+CopyBtn.AutoButtonColor = false
+CopyBtn.TextTransparency = 1
+CopyBtn.BackgroundTransparency = 1
+CopyBtn.Parent = DiscordBox
+Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 5)
+
+-- ERROR LABEL
+local KError = Instance.new("TextLabel")
+KError.Size = UDim2.new(1, 0, 0, 20)
+KError.Position = UDim2.new(0, 0, 0, 380)
+KError.BackgroundTransparency = 1
+KError.Text = ""
+KError.TextSize = 13
+KError.Font = Enum.Font.GothamSemibold
+KError.TextTransparency = 1
+KError.Parent = KeyBox
+
+-- ===========================
+-- ANIMATIONS
+-- ===========================
+task.spawn(function()
+    TweenService:Create(KeyBg, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    task.wait(0.3)
+    TweenService:Create(KeyBox, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(KBS, TweenInfo.new(0.4), {Transparency = 0}):Play()
+    task.wait(0.2)
+    TweenService:Create(KLogo, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
+    local sp = true
+    task.spawn(function() local r = 0 while sp do r = r + 4; KLogo.Rotation = r; task.wait() end end)
+    task.wait(1.5); sp = false
+    TweenService:Create(KLogo, TweenInfo.new(0.3), {Rotation = 0}):Play()
+    TweenService:Create(KTitle, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(KSub, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(KInput, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+    TweenService:Create(KIS, TweenInfo.new(0.3), {Transparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(KSubmit, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(DiscordDivider, TweenInfo.new(0.3), {BackgroundTransparency = 0.5}):Play()
+    TweenService:Create(DiscordLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(DiscordBox, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(DiscordText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    TweenService:Create(CopyBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+end)
+
+-- ===========================
+-- COPY BUTTON (CLIPBOARD)
+-- ===========================
+CopyBtn.MouseButton1Click:Connect(function()
+    local copied = false
+    pcall(function()
+        if setclipboard then setclipboard(DISCORD_LINK); copied = true
+        elseif toclipboard then toclipboard(DISCORD_LINK); copied = true
+        elseif syn and syn.write_clipboard then syn.write_clipboard(DISCORD_LINK); copied = true
+        elseif writeclipboard then writeclipboard(DISCORD_LINK); copied = true end
+    end)
+    
+    if copied then
+        CopyBtn.Text = "COPIED!"
+        CopyBtn.BackgroundColor3 = C.Green
+        task.wait(1.5)
+        CopyBtn.Text = "COPY"
+        CopyBtn.BackgroundColor3 = Color3.fromRGB(60, 75, 200)
+    else
+        CopyBtn.Text = "FAIL"
+        CopyBtn.BackgroundColor3 = C.Red
+        task.wait(1.5)
+        CopyBtn.Text = "COPY"
+        CopyBtn.BackgroundColor3 = Color3.fromRGB(60, 75, 200)
+    end
+end)
+
+-- ===========================
+-- KEY VERIFY
+-- ===========================
+local keyEvent = Instance.new("BindableEvent")
+
+local function verifyKey()
+    if KInput.Text == KEY then
+        KError.Text = "Access granted!"
+        KError.TextColor3 = C.Green
+        TweenService:Create(KError, TweenInfo.new(0.2), {TextTransparency = 0}):Play()
+        task.wait(0.5)
+        
+        for _, v in pairs(KeyBox:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then
+                TweenService:Create(v, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+            end
+            if v:IsA("ImageLabel") then TweenService:Create(v, TweenInfo.new(0.3), {ImageTransparency = 1}):Play() end
+            if v:IsA("Frame") and v ~= KeyBox then
+                TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+            end
+        end
+        TweenService:Create(KeyBox, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(KBS, TweenInfo.new(0.3), {Transparency = 1}):Play()
+        TweenService:Create(KeyBg, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+        task.wait(0.4)
+        KeyGui:Destroy()
+        keyEvent:Fire()
+    else
+        KError.Text = "Wrong key! Join Discord to get one."
+        KError.TextColor3 = C.Red
+        TweenService:Create(KError, TweenInfo.new(0.2), {TextTransparency = 0}):Play()
+        
+        -- Shake animasyonu
+        local op = KInput.Position
+        for i = 1, 3 do
+            KInput.Position = op + UDim2.new(0, 5, 0, 0); task.wait(0.05)
+            KInput.Position = op + UDim2.new(0, -5, 0, 0); task.wait(0.05)
+        end
+        KInput.Position = op
+    end
+end
+
+KSubmit.MouseButton1Click:Connect(verifyKey)
+KInput.FocusLost:Connect(function(enter)
+    if enter then verifyKey() end
+end)
+
+keyEvent.Event:Wait()
+
+-- ===========================
+-- MAIN CONSOLE (Key sonrasi)
+-- ===========================
+local function parseValue(str)
+    if not str or str == "" then return 0 end
+    str = str:gsub(",", ""):gsub("%s+", ""):lower()
+    local num, suffix = str:match("([%d%.]+)([kmbt]?)")
+    if not num then return 0 end
+    local value = tonumber(num) or 0
+    if suffix == "k" then value = value * 1e3
+    elseif suffix == "m" then value = value * 1e6
+    elseif suffix == "b" then value = value * 1e9
+    elseif suffix == "t" then value = value * 1e12 end
+    return value
+end
+
+local function formatValue(v)
+    if v >= 1e12 then return string.format("%.2fT", v/1e12)
+    elseif v >= 1e9 then return string.format("%.2fB", v/1e9)
+    elseif v >= 1e6 then return string.format("%.2fM", v/1e6)
+    elseif v >= 1e3 then return string.format("%.1fK", v/1e3)
+    else return tostring(math.floor(v)) end
+end
+
+local function getTradeData()
+    local tw = playerGui:FindFirstChild("TradeWindow")
+    if not tw or not tw.Enabled then return nil end
+    local frame = tw:FindFirstChild("Frame")
+    if not frame then return nil end
+    
+    local clientRAP = frame:FindFirstChild("ClientRAPHolder")
+    local yourValue, yourValueText = 0, "0"
+    if clientRAP then
+        local amount = clientRAP:FindFirstChild("Amount")
+        if amount and amount:IsA("TextLabel") then
+            yourValueText = amount.Text
+            yourValue = parseValue(amount.Text)
+        end
+    end
+    
+    local playerRAP = frame:FindFirstChild("PlayerRAPHolder")
+    local theirValue, theirValueText = 0, "0"
+    if playerRAP then
+        local amount = playerRAP:FindFirstChild("Amount")
+        if amount and amount:IsA("TextLabel") then
+            theirValueText = amount.Text
+            theirValue = parseValue(amount.Text)
+        end
+    end
+    
+    local playerTitle = frame:FindFirstChild("PlayerTitle")
+    local playerName = playerTitle and playerTitle.Text or "Unknown"
+    
+    local clientDiamonds = frame:FindFirstChild("ClientDiamonds")
+    local yourDiamonds = 0
+    if clientDiamonds then
+        local d = clientDiamonds:FindFirstChild("Diamonds")
+        if d then local input = d:FindFirstChild("Input")
+            if input and input:IsA("TextBox") then yourDiamonds = parseValue(input.Text) end end
+    end
+    
+    local playerDiamonds = frame:FindFirstChild("PlayerDiamonds")
+    local theirDiamonds = 0
+    if playerDiamonds then
+        local tl = playerDiamonds:FindFirstChild("TextLabel")
+        if tl and tl:IsA("TextLabel") then theirDiamonds = parseValue(tl.Text) end
+    end
+    
+    return {
+        yourValue = yourValue, yourValueText = yourValueText,
+        theirValue = theirValue, theirValueText = theirValueText,
+        playerName = playerName,
+        yourDiamonds = yourDiamonds, theirDiamonds = theirDiamonds,
+    }
+end
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TradeConsole"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 500
+ScreenGui.Parent = playerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 380)
+MainFrame.Position = UDim2.new(1, -340, 0.5, -190)
+MainFrame.BackgroundColor3 = C.Bg
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = C.Accent; Stroke.Thickness = 1.5
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 32)
+Header.BackgroundColor3 = Color3.fromRGB(8, 8, 16)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 20, 0, 20); Logo.Position = UDim2.new(0, 8, 0.5, -10)
+Logo.BackgroundTransparency = 1; Logo.Image = LOGO_ID; Logo.Parent = Header
+Instance.new("UICorner", Logo).CornerRadius = UDim.new(1, 0)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 1, 0); Title.Position = UDim2.new(0, 34, 0, 0)
+Title.BackgroundTransparency = 1; Title.Text = "Trade Console v5"
+Title.TextColor3 = C.Accent; Title.TextSize = 13
+Title.Font = Enum.Font.Code; Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 20, 0, 20); CloseBtn.Position = UDim2.new(1, -24, 0.5, -10)
+CloseBtn.BackgroundColor3 = C.Red; CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1, 1, 1); CloseBtn.TextSize = 10
+CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = Header
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
+
+local ConsoleFrame = Instance.new("ScrollingFrame")
+ConsoleFrame.Size = UDim2.new(1, -16, 0, 300)
+ConsoleFrame.Position = UDim2.new(0, 8, 0, 38)
+ConsoleFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 12)
+ConsoleFrame.BorderSizePixel = 0
+ConsoleFrame.ScrollBarThickness = 3
+ConsoleFrame.ScrollBarImageColor3 = C.Accent
+ConsoleFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ConsoleFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ConsoleFrame.Parent = MainFrame
+Instance.new("UICorner", ConsoleFrame).CornerRadius = UDim.new(0, 6)
+
+local ConsoleLayout = Instance.new("UIListLayout")
+ConsoleLayout.Padding = UDim.new(0, 2)
+ConsoleLayout.Parent = ConsoleFrame
+
+local ConsolePad = Instance.new("UIPadding")
+ConsolePad.PaddingTop = UDim.new(0, 4); ConsolePad.PaddingLeft = UDim.new(0, 6)
+ConsolePad.PaddingRight = UDim.new(0, 6); ConsolePad.Parent = ConsoleFrame
+
+local logCount = 0
+local function log(text, color)
+    logCount = logCount + 1
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 0, 14)
+    l.BackgroundTransparency = 1
+    l.Text = "> " .. text
+    l.TextColor3 = color or C.Text
+    l.TextSize = 11
+    l.Font = Enum.Font.Code
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.TextWrapped = true
+    l.AutomaticSize = Enum.AutomaticSize.Y
+    l.LayoutOrder = logCount
+    l.Parent = ConsoleFrame
+    task.wait()
+    ConsoleFrame.CanvasPosition = Vector2.new(0, ConsoleFrame.AbsoluteCanvasSize.Y)
+end
+
+local function systemLog(t) log("[SYSTEM] " .. t, C.System) end
+local function winLog(t) log("[WIN] " .. t, C.Green) end
+local function loseLog(t) log("[LOSE] " .. t, C.Red) end
+local function fairLog(t) log("[FAIR] " .. t, C.Yellow) end
+local function valueLog(t) log("[VALUE] " .. t, C.Accent) end
+
+-- STATUS
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(1, -16, 0, 28)
+StatusFrame.Position = UDim2.new(0, 8, 1, -36)
+StatusFrame.BackgroundColor3 = C.Input
+StatusFrame.BorderSizePixel = 0
+StatusFrame.Parent = MainFrame
+Instance.new("UICorner", StatusFrame).CornerRadius = UDim.new(0, 5)
+
+local StatusDot = Instance.new("Frame")
+StatusDot.Size = UDim2.new(0, 10, 0, 10); StatusDot.Position = UDim2.new(0, 8, 0.5, -5)
+StatusDot.BackgroundColor3 = C.Red; StatusDot.BorderSizePixel = 0
+StatusDot.Parent = StatusFrame
+Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, -30, 1, 0); StatusText.Position = UDim2.new(0, 24, 0, 0)
+StatusText.BackgroundTransparency = 1; StatusText.Text = "System No Active"
+StatusText.TextColor3 = C.Red; StatusText.TextSize = 11
+StatusText.Font = Enum.Font.Code; StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.Parent = StatusFrame
+
+-- LOGIC
+systemLog("Trade Console v5 loaded")
+systemLog("Key verified - Access granted")
+systemLog("Uses IN-GAME values (accurate)")
+systemLog("Waiting for trade...")
+
+local tradeActive = false
+local lastYourValue = -1
+local lastTheirValue = -1
+
+task.spawn(function()
+    while task.wait(1) do
+        local data = getTradeData()
+        
+        if not data then
+            if tradeActive then
+                tradeActive = false
+                StatusDot.BackgroundColor3 = C.Red
+                StatusText.Text = "System No Active"
+                StatusText.TextColor3 = C.Red
+                systemLog("Trade closed")
+                lastYourValue = -1
+                lastTheirValue = -1
+            end
+        else
+            if not tradeActive then
+                tradeActive = true
+                StatusDot.BackgroundColor3 = C.Green
+                StatusText.Text = "System Activated"
+                StatusText.TextColor3 = C.Green
+                systemLog("TRADE DETECTED!")
+                systemLog("Trading with: " .. data.playerName)
+            end
+            
+            if data.yourValue ~= lastYourValue or data.theirValue ~= lastTheirValue then
+                lastYourValue = data.yourValue
+                lastTheirValue = data.theirValue
+                
+                local yourTotal = data.yourValue + data.yourDiamonds
+                local theirTotal = data.theirValue + data.theirDiamonds
+                
+                systemLog("=== UPDATE ===")
+                
+                if data.yourDiamonds > 0 then
+                    valueLog("YOU: " .. data.yourValueText .. " + " .. formatValue(data.yourDiamonds) .. " diamonds")
+                    valueLog("Total: " .. formatValue(yourTotal))
+                else
+                    valueLog("YOU: " .. data.yourValueText)
+                end
+                
+                if data.theirDiamonds > 0 then
+                    valueLog("THEM: " .. data.theirValueText .. " + " .. formatValue(data.theirDiamonds) .. " diamonds")
+                    valueLog("Total: " .. formatValue(theirTotal))
+                else
+                    valueLog("THEM: " .. data.theirValueText)
+                end
+                
+                local diff = theirTotal - yourTotal
+                local percent = 0
+                if yourTotal > 0 then percent = (diff / yourTotal) * 100
+                elseif theirTotal > 0 then percent = 999 end
+                
+                if diff > 0 then
+                    systemLog("Profit: +" .. formatValue(diff))
+                elseif diff < 0 then
+                    systemLog("Loss: " .. formatValue(diff))
+                else
+                    systemLog("Equal")
+                end
+                
+                if yourTotal == 0 and theirTotal == 0 then
+                    fairLog("Empty trade")
+                elseif percent >= 30 then
+                    winLog("HUGE WIN - ACCEPT FAST!")
+                elseif percent >= 10 then
+                    winLog("WIN - Good deal")
+                elseif percent >= -10 then
+                    fairLog("FAIR - Balanced")
+                elseif percent >= -30 then
+                    loseLog("LOSS - Decline")
+                else
+                    loseLog("HUGE LOSS - SCAM!")
+                end
+            end
+        end
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+print("Trade Console v5 loaded")
