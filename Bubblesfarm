@@ -1,0 +1,254 @@
+-- ============================================================
+-- OxygenHub Evade AutoFarm v33 (ULTRA VISION - FIXED)
+-- Key: 67Oxygen67
+-- Discord: https://discord.gg/DfRDyCMQPZ
+-- ============================================================
+
+local Players = game:GetService("Players")
+local RS = game:GetService("RunService")
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local WS = game:GetService("Workspace")
+
+local LP = Players.LocalPlayer
+local KEY = "67Oxygen67"
+local DISCORD = "https://discord.gg/DfRDyCMQPZ"
+local LOGO_IMG = "rbxassetid://129641080014287"
+
+local function getSafeGuiParent()
+    local ok, p = pcall(function() return (gethui and gethui()) or game:GetService("CoreGui") end)
+    return (ok and p) or LP:WaitForChild("PlayerGui")
+end
+local GuiParent = getSafeGuiParent()
+
+for _, v in pairs(GuiParent:GetChildren()) do
+    if v.Name == "OxyHub" or v.Name == "OxyKey" then v:Destroy() end
+end
+
+local C = {
+    Bg = Color3.fromRGB(12, 16, 28),
+    Sec = Color3.fromRGB(22, 28, 42),
+    Acc = Color3.fromRGB(55, 120, 255),
+    Txt = Color3.fromRGB(255, 255, 255),
+    Dim = Color3.fromRGB(140, 155, 180),
+    Bdr = Color3.fromRGB(40, 55, 80),
+    Grn = Color3.fromRGB(50, 210, 110),
+    Red = Color3.fromRGB(230, 60, 60)
+}
+
+local State = {
+    farm = false,
+    speed = 110,
+    collected = 0,
+    status = "Idle",
+    safeY = 170
+}
+
+-- ============================================================
+-- ULTRA VISION FILTER (GELİŞTİRİLMİŞ TESPİT)
+-- ============================================================
+local function isBubble(v)
+    if not v:IsA("BasePart") or v.Transparency >= 0.9 then return false end
+    
+    -- Oyuncu Karakteri Kontrolü
+    local model = v:FindFirstAncestorWhichIsA("Model")
+    if model and Players:GetPlayerFromCharacter(model) then return false end
+    
+    local n = v.Name:lower()
+    local s = v.Size
+    
+    -- Kapı / Duvar engelleme (Boyut bazlı)
+    if s.X > 7 or s.Y > 7 or s.Z > 7 then return false end
+    
+    -- Anahtar kelimeler
+    local validName = n:find("bubble") or n:find("ticket") or n:find("token") or n:find("orb") or n:find("event") or n:find("item")
+    
+    -- Evade Baloncuğu Kontrolü
+    if validName and not v:IsDescendantOf(LP.Character) then
+        -- Eğer parça çok inceyse (duvar/kapı olma ihtimali) engelle
+        if s.X < 0.2 or s.Z < 0.2 then return false end
+        return true
+    end
+    
+    return false
+end
+
+local function getTarget()
+    local target, dist = nil, math.huge
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+
+    -- Workspace'teki tüm parçaları hızlıca tara
+    local descendants = WS:GetDescendants()
+    for i = 1, #descendants do
+        local v = descendants[i]
+        if isBubble(v) then
+            local d = (v.Position - hrp.Position).Magnitude
+            if d < dist then
+                dist = d
+                target = v
+            end
+        end
+    end
+    return target
+end
+
+-- ============================================================
+-- MOVEMENT (INSTANT TP & SMOOTH GLIDE)
+-- ============================================================
+local function tpSky()
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = CFrame.new(hrp.Position.X, State.safeY, hrp.Position.Z)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end
+end
+
+local function glide(pos)
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local duration = (pos - hrp.Position).Magnitude / State.speed
+    local tween = TS:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
+    
+    local con = RS.Heartbeat:Connect(function() 
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) 
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    end)
+    
+    tween:Play()
+    tween.Completed:Wait()
+    con:Disconnect()
+end
+
+local function collect(v)
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not v then return end
+    
+    -- Proximity Prompt tetikle
+    local prompt = v:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt and fireproximityprompt then fireproximityprompt(prompt) end
+    
+    -- Çoklu Dokunma (Garanti toplama)
+    if firetouchinterest then
+        for i = 1, 3 do
+            firetouchinterest(hrp, v, 0)
+            task.wait(0.02)
+            firetouchinterest(hrp, v, 1)
+        end
+    end
+end
+
+local function runFarm()
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    State.safeY = hrp and (hrp.Position.Y + 160) or 170
+    
+    tpSky()
+    
+    while State.farm do
+        local target = getTarget()
+        if target and target.Parent then
+            State.status = "Gliding to target"
+            glide(target.Position + Vector3.new(0, 1.2, 0))
+            
+            State.status = "Collecting bubble"
+            collect(target)
+            
+            task.wait(2.5) -- 2.5 Saniye Bekleme
+            
+            State.collected = State.collected + 1
+            State.status = "Teleporting to sky"
+            tpSky()
+            task.wait(0.5)
+        else
+            State.status = "Searching for bubbles"
+            task.wait(0.5) -- Daha hızlı tarama için 0.5s bekleme
+        end
+    end
+end
+
+-- Noclip & Fling Protection
+RS.Stepped:Connect(function()
+    if State.farm and LP.Character then
+        pcall(function()
+            for _, v in pairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end)
+    end
+end)
+
+-- ============================================================
+-- UI
+-- ============================================================
+local function openMenu()
+    local SG = Instance.new("ScreenGui", GuiParent); SG.Name = "OxyHub"
+    local MF = Instance.new("Frame", SG)
+    MF.Size = UDim2.new(0, 270, 0, 240); MF.Position = UDim2.new(0, 30, 0.5, -120)
+    MF.BackgroundColor3 = C.Bg; MF.BorderSizePixel = 0; MF.Active = true; MF.Draggable = true
+    Instance.new("UICorner", MF)
+    local ST = Instance.new("UIStroke", MF); ST.Color = C.Acc; ST.Thickness = 2
+
+    local title = Instance.new("TextLabel", MF)
+    title.Size = UDim2.new(1, 0, 0, 40); title.Text = "Oxygen Hub Evade"; title.TextColor3 = C.Acc; title.Font = Enum.Font.GothamBold; title.TextSize = 14; title.BackgroundTransparency = 1
+
+    local stL = Instance.new("TextLabel", MF)
+    stL.Size = UDim2.new(1, -20, 0, 20); stL.Position = UDim2.new(0, 15, 0, 50); stL.Text = "Status: Idle"; stL.TextColor3 = C.Txt; stL.Font = Enum.Font.Gotham; stL.TextSize = 12; stL.BackgroundTransparency = 1; stL.TextXAlignment = 0
+
+    local coL = Instance.new("TextLabel", MF)
+    coL.Size = UDim2.new(1, -20, 0, 20); coL.Position = UDim2.new(0, 15, 0, 75); coL.Text = "Bubbles Collected: 0"; coL.TextColor3 = C.Grn; coL.Font = Enum.Font.GothamBold; coL.TextSize = 13; coL.BackgroundTransparency = 1; coL.TextXAlignment = 0
+
+    local farmBtn = Instance.new("TextButton", MF)
+    farmBtn.Size = UDim2.new(1, -30, 0, 45); farmBtn.Position = UDim2.new(0, 15, 0, 120)
+    farmBtn.BackgroundColor3 = C.Red; farmBtn.Text = "START BUBBLE FARM"; farmBtn.TextColor3 = C.Txt; farmBtn.Font = Enum.Font.GothamBold; farmBtn.TextSize = 12
+    Instance.new("UICorner", farmBtn)
+
+    local footer = Instance.new("TextLabel", MF)
+    footer.Size = UDim2.new(1, 0, 0, 20); footer.Position = UDim2.new(0, 0, 1, -20); footer.Text = "RightShift to Hide Menu"; footer.TextColor3 = C.Dim; footer.Font = Enum.Font.Gotham; footer.TextSize = 9; footer.BackgroundTransparency = 1
+
+    farmBtn.MouseButton1Click:Connect(function()
+        State.farm = not State.farm
+        if State.farm then
+            farmBtn.Text = "STOP BUBBLE FARM"; farmBtn.BackgroundColor3 = C.Grn; task.spawn(runFarm)
+        else
+            farmBtn.Text = "START BUBBLE FARM"; farmBtn.BackgroundColor3 = C.Red
+        end
+    end)
+
+    task.spawn(function()
+        while SG.Parent do
+            stL.Text = "Status: " .. State.status
+            coL.Text = "Bubbles Collected: " .. State.collected
+            task.wait(0.3)
+        end
+    end)
+    UIS.InputBegan:Connect(function(i, g) if not g and i.KeyCode == Enum.KeyCode.RightShift then MF.Visible = not MF.Visible end end)
+end
+
+-- ============================================================
+-- KEY GUI
+-- ============================================================
+local KG = Instance.new("ScreenGui", GuiParent); KG.Name = "OxyKey"
+local KB = Instance.new("Frame", KG)
+KB.Size = UDim2.new(0, 320, 0, 220); KB.Position = UDim2.new(0.5, -160, 0.5, -110); KB.BackgroundColor3 = C.Bg
+Instance.new("UICorner", KB); Instance.new("UIStroke", KB).Color = C.Acc
+
+local kt = Instance.new("TextLabel", KB)
+kt.Size = UDim2.new(1, 0, 0, 50); kt.Text = "Oxygen Hub Evade"; kt.TextColor3 = C.Acc; kt.Font = Enum.Font.GothamBold; kt.TextSize = 18; kt.BackgroundTransparency = 1
+
+local ki = Instance.new("TextBox", KB)
+ki.Size = UDim2.new(0.8, 0, 0, 40); ki.Position = UDim2.new(0.1, 0, 0, 60); ki.BackgroundColor3 = C.Sec; ki.TextColor3 = C.Txt; ki.PlaceholderText = "Paste Key Here..."; ki.Text = ""
+Instance.new("UICorner", ki); Instance.new("UIStroke", ki).Color = C.Bdr
+
+local ks = Instance.new("TextButton", KB)
+ks.Size = UDim2.new(0.8, 0, 0, 40); ks.Position = UDim2.new(0.1, 0, 0, 110); ks.BackgroundColor3 = C.Acc; ks.Text = "SUBMIT"; ks.TextColor3 = C.Txt; ks.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ks)
+
+local kd = Instance.new("TextButton", KB)
+kd.Size = UDim2.new(0.8, 0, 0, 30); kd.Position = UDim2.new(0.1, 0, 0, 160); kd.BackgroundColor3 = C.Sec; kd.Text = "Get Free Key (Discord)"; kd.TextColor3 = C.Dim; kd.Font = Enum.Font.Gotham; kd.TextSize = 11
+Instance.new("UICorner", kd)
+
+kd.MouseButton1Click:Connect(function() setclipboard(DISCORD); kd.Text = "Link Copied!" ; task.wait(2); kd.Text = "Get Free Key (Discord)" end)
+ks.MouseButton1Click:Connect(function() if ki.Text == KEY then KG:Destroy(); openMenu() else ks.Text = "WRONG KEY!"; task.wait(1); ks.Text = "SUBMIT" end end)
+
+print("OxygenHub v33 Agent Mode Loaded!")
